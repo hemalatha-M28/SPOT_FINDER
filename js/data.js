@@ -5,7 +5,7 @@ const COIMBATORE_DATA = {
       name: "Gandhipuram",
       tagline: "The Pulse of Coimbatore",
       bannerImage: "images/Gandhipuram.jpeg",
-      description: "Coimbatore's primary commercial heart and major transport hub, Gandhipuram is alive with bustling markets, modern retail malls, and endless culinary options. From street-side snack stalls to luxury dining, it reflects the city's fast-paced growth.",
+      description: "Gandhipuram is Coimbatore’s vibrant commercial and transport hub, known for its bustling markets, shopping streets, and diverse food scene.",
       spots: [
         {
           id: "gandhipuram-cross-cut",
@@ -88,7 +88,7 @@ const COIMBATORE_DATA = {
       name: "Ukkadam",
       tagline: "Scenic Wetlands & Heritage Gates",
       bannerImage: "images/Ukkadam.jpeg",
-      description: "Steeped in historical relevance and enriched by Coimbatore's iconic Ukkadam Valankulam lake, this area offers a refreshing blend of natural wetlands, leisure parks, and bird-watching spots.",
+      description: "Ukkadam is a lively neighborhood known for Ukkadam Lake, local markets, excellent street food, and easy connectivity across Coimbatore.",
       spots: [
         {
           id: "ukkadam-lake",
@@ -171,7 +171,7 @@ const COIMBATORE_DATA = {
       name: "R.S. Puram",
       tagline: "Elegant Avenues & Gourmet Lanes",
       bannerImage: "images/RSpuram.jpeg",
-      description: "Rathinasabapathy Puram (R.S. Puram) is Coimbatore's premier upscale residential and shopping district. Known for its tree-lined avenues, boutique stores, smart city walkways, and high-end cafes.",
+      description: "R.S. Puram is Coimbatore's upscale shopping and dining destination, offering premium stores, cafés, restaurants, and a pleasant atmosphere.",
       spots: [
         {
           id: "db-road",
@@ -254,7 +254,7 @@ const COIMBATORE_DATA = {
       name: "Town Hall",
       tagline: "Historic Heritage & Heritage Bazaars",
       bannerImage: "images/Townhall.jpeg",
-      description: "The historical center of Coimbatore, Town Hall is home to architectural landmarks from the British Raj, century-old wholesale bazaars, and traditional temples that capture the real heritage of Kovai.",
+      description: "Town Hall is a historic commercial area known for its traditional markets, textile shops, and vibrant local shopping experience",
       spots: [
         {
           id: "coimbatore-town-hall",
@@ -337,7 +337,7 @@ const COIMBATORE_DATA = {
       name: "Race Course",
       tagline: "Luxurious Avenues & Scenic Jogging Tracks",
       bannerImage: "images/Racecourse.jpeg",
-      description: "Recognized as the Beverly Hills of Coimbatore, Race Course features a sweeping circular boulevard bordered by sprawling colonial-era bungalows, high-end design boutiques, and a vibrant running community.",
+      description: "Race Course is a popular destination for morning walks, jogging, cafés, and a peaceful green environment in the heart of Coimbatore.",
       spots: [
         {
           id: "race-course-walking-track",
@@ -420,7 +420,7 @@ const COIMBATORE_DATA = {
       name: "Peelamedu",
       tagline: "Industrial Pioneers & Academic Hubs",
       bannerImage: "images/Peelamedu.jpeg",
-      description: "The educational and industrial cradle of Coimbatore. Peelamedu is home to world-renowned universities, state-of-the-art hospitals, software parks, and massive shopping malls.",
+      description: "Peelamedu is a fast-growing locality known for educational institutions, shopping malls, hospitals, and business centers.",
       spots: [
         {
           id: "fun-republic-mall",
@@ -503,7 +503,7 @@ const COIMBATORE_DATA = {
       name: "Saibaba Colony",
       tagline: "Serene Gardens & Modern Cafes",
       bannerImage: "images/Saibabacolony.jpeg",
-      description: "A classy residential layout turned commercial sensation, Saibaba Colony is celebrated for its lush parks, quiet avenues, and a sudden boom of high-end vegetarian food joints and boutique cafes.",
+      description: "Saibaba Colony is a lively residential neighborhood famous for its cafés, restaurants, parks, and relaxed atmosphere.",
       spots: [
         {
           id: "saibaba-temple",
@@ -586,7 +586,7 @@ const COIMBATORE_DATA = {
       name: "Singanallur",
       tagline: "Eco-Reserve Lakes & Transport Crossroads",
       bannerImage: "images/Singanallur.jpeg",
-      description: "Famous for the massive Singanallur Lake—a declared urban biodiversity conservation zone—this eastern sector is highly active, linking Coimbatore to central and southern Tamil Nadu.",
+      description: "Singanallur is well known for its scenic lake, birdwatching, peaceful surroundings, and excellent transport connectivity.",
       spots: [
         {
           id: "singanallur-lake",
@@ -669,7 +669,7 @@ const COIMBATORE_DATA = {
       name: "Saravanampatti",
       tagline: "Silicon Valley of Kovai & IT Hubs",
       bannerImage: "images/Saravanampatti.jpeg",
-      description: "Coimbatore's fastest-growing IT corridor, Saravanampatti is packed with tech parks, student hubs, vibrant nightlife spots, and modern theme-based cafes catering to a young, cosmopolitan crowd.",
+      description: "Saravanampatti is Coimbatore's IT hub, home to leading technology companies, educational institutions, and modern lifestyle amenities.",
       spots: [
         {
           id: "chilotg-it-park",
@@ -752,7 +752,7 @@ const COIMBATORE_DATA = {
       name: "Vadavalli",
       tagline: "Western Foothills & Mystic Temples",
       bannerImage: "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?q=80&w=1200",
-      description: "Vadavalli nestles along the foothills of the Western Ghats. A serene, breeze-cooled residential haven, it serves as the gateway to the Marudhamalai Hill Temple and is famous for its peaceful nature trails.",
+      description: "Vadavalli is a serene residential area near the Western Ghats, known for its greenery, pleasant climate, and easy access to nature.",
       spots: [
         {
           id: "marudhamalai-temple",

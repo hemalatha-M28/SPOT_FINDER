@@ -118,6 +118,7 @@ header {
   z-index: 1000;
   padding: 1.5rem 4%;
   transition: var(--transition-smooth);
+  background: var(--bg-primary);
 }
 
 header.sticky {
@@ -131,7 +132,7 @@ header.sticky {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -214,30 +215,11 @@ header.sticky {
   width: 100%;
 }
 
-.nav-actions {
-  display: flex;
-  align-items: center;
-}
 
-.nav-btn {
-  background: none;
-  border: 1px solid var(--glass-border);
-  color: var(--text-primary);
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  transition: var(--transition-smooth);
-}
 
-.nav-btn:hover {
-  border-color: var(--color-secondary);
-  background-color: rgba(212, 175, 55, 0.08);
-  color: var(--color-secondary);
-}
+
+
+
 
 .menu-toggle {
   display: none;

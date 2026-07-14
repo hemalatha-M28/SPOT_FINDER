@@ -26,11 +26,7 @@ class SpotFinderApp {
     }
   }
 
-  toggleTheme() {
-    this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('sf_theme', this.currentTheme);
-    this.initTheme();
-  }
+
 
   // -----------------------------------------------------------
   // ROUTER INITIALIZATION
