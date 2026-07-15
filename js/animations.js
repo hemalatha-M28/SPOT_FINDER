@@ -32,3 +32,4 @@ window.SpotFinderAnimations = null;
 window.addEventListener('DOMContentLoaded', () => {
   window.SpotFinderAnimations = new SpotFinderAnimations();
 });
+
