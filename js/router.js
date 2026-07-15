@@ -29,8 +29,13 @@ class SpotFinderRouter {
     // -----------------------------------------------------------
     const isLoggedIn = window.SpotFinderAuth && window.SpotFinderAuth.isLoggedIn();
     const isAdmin = window.SpotFinderAuth && window.SpotFinderAuth.isAdmin();
+    const isPartner = window.SpotFinderAuth && window.SpotFinderAuth.isPartner();
 
     if (hash.startsWith('#/admin') && !isAdmin) {
+      window.location.hash = isLoggedIn ? '#/' : '#/login';
+      return;
+    }
+    if (hash.startsWith('#/partner') && !isPartner) {
       window.location.hash = isLoggedIn ? '#/' : '#/login';
       return;
     }
@@ -58,6 +63,10 @@ class SpotFinderRouter {
       this.renderAdminManage();
     } else if (hash === '#/admin/accounts') {
       this.renderAdminAccounts();
+    } else if (hash === '#/partner') {
+      this.renderPartnerDashboard();
+    } else if (hash === '#/favorites') {
+      this.renderFavorites();
     } else if (hash === '#/' || hash === '#home') {
       this.renderHome();
       this.initHeroSlider();
@@ -154,9 +163,15 @@ class SpotFinderRouter {
     const adminLink = auth.isAdmin()
       ? `<a href="#/admin" class="nav-link nav-admin-link"><i class="fa-solid fa-user-shield"></i> Admin</a>`
       : '';
+    const partnerLink = auth.isPartner()
+      ? `<a href="#/partner" class="nav-link nav-admin-link"><i class="fa-solid fa-handshake"></i> Partner Panel</a>`
+      : '';
+    const favoritesLink = `<a href="#/favorites" class="nav-link"><i class="fa-solid fa-heart"></i> Favorites</a>`;
 
     authSlot.innerHTML = `
+      ${favoritesLink}
       ${adminLink}
+      ${partnerLink}
       <span class="nav-user-chip"><i class="fa-solid fa-circle-user"></i> ${user.name}</span>
       <button class="nav-logout-btn" id="nav-logout-btn" title="Log out"><i class="fa-solid fa-right-from-bracket"></i></button>
     `;
@@ -185,6 +200,7 @@ class SpotFinderRouter {
 
           <div class="auth-tabs">
             <button class="auth-tab active" data-tab="user">User Login</button>
+            <button class="auth-tab" data-tab="partner">Partner Login</button>
             <button class="auth-tab" data-tab="admin">Admin Login</button>
           </div>
 
@@ -212,6 +228,31 @@ class SpotFinderRouter {
             <p class="auth-switch">Already registered? <a href="#" id="show-login">Back to login</a></p>
           </div>
 
+          <!-- PARTNER LOGIN -->
+          <div class="auth-panel" id="panel-partner-login">
+            <form id="partner-login-form" class="auth-form">
+              <input type="text" id="partner-login-username" placeholder="Partner Username" required autocomplete="username">
+              <input type="password" id="partner-login-password" placeholder="Password" required autocomplete="current-password">
+              <div class="auth-error" id="partner-login-error"></div>
+              <button type="submit" class="action-btn-primary auth-submit-btn">Partner Log In</button>
+            </form>
+            <p class="auth-switch">New business? <a href="#" id="show-partner-register">Register as a Partner</a></p>
+          </div>
+
+          <!-- PARTNER REGISTER -->
+          <div class="auth-panel" id="panel-partner-register">
+            <form id="partner-register-form" class="auth-form">
+              <input type="text" id="partner-reg-name" placeholder="Your Full Name" required>
+              <input type="text" id="partner-reg-business" placeholder="Business / Hotel Name" required>
+              <input type="text" id="partner-reg-username" placeholder="Choose a username" required>
+              <input type="password" id="partner-reg-password" placeholder="Choose a password" required minlength="4">
+              <div class="auth-error" id="partner-register-error"></div>
+              <div class="auth-success" id="partner-register-success"></div>
+              <button type="submit" class="action-btn-primary auth-submit-btn">Register Business</button>
+            </form>
+            <p class="auth-switch">Already a partner? <a href="#" id="show-partner-login">Back to login</a></p>
+          </div>
+
           <!-- ADMIN LOGIN -->
           <div class="auth-panel" id="panel-admin-login">
             <form id="admin-login-form" class="auth-form">
@@ -233,6 +274,7 @@ class SpotFinderRouter {
     const tabs = document.querySelectorAll('.auth-tab');
     const panels = {
       user: document.getElementById('panel-user-login'),
+      partner: document.getElementById('panel-partner-login'),
       admin: document.getElementById('panel-admin-login')
     };
 
@@ -242,8 +284,57 @@ class SpotFinderRouter {
         tab.classList.add('active');
         Object.values(panels).forEach(p => p.classList.remove('active'));
         document.getElementById('panel-user-register').classList.remove('active');
+        document.getElementById('panel-partner-register').classList.remove('active');
         panels[tab.dataset.tab].classList.add('active');
       });
+    });
+
+    document.getElementById('show-partner-register').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('panel-partner-login').classList.remove('active');
+      document.getElementById('panel-partner-register').classList.add('active');
+    });
+
+    document.getElementById('show-partner-login').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('panel-partner-register').classList.remove('active');
+      document.getElementById('panel-partner-login').classList.add('active');
+    });
+
+    document.getElementById('partner-login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('partner-login-username').value.trim();
+      const password = document.getElementById('partner-login-password').value;
+      const result = window.SpotFinderAuth.loginPartner(username, password);
+      const errorBox = document.getElementById('partner-login-error');
+      if (result.success) {
+        errorBox.textContent = '';
+        window.location.hash = '#/partner';
+      } else {
+        errorBox.textContent = result.message;
+      }
+    });
+
+    document.getElementById('partner-register-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('partner-reg-name').value.trim();
+      const businessName = document.getElementById('partner-reg-business').value.trim();
+      const username = document.getElementById('partner-reg-username').value.trim();
+      const password = document.getElementById('partner-reg-password').value;
+      const result = window.SpotFinderAuth.registerPartner(name, businessName, username, password);
+      const errorBox = document.getElementById('partner-register-error');
+      const successBox = document.getElementById('partner-register-success');
+      if (result.success) {
+        errorBox.textContent = '';
+        successBox.textContent = 'Business registered! You can log in now.';
+        setTimeout(() => {
+          document.getElementById('panel-partner-register').classList.remove('active');
+          document.getElementById('panel-partner-login').classList.add('active');
+        }, 900);
+      } else {
+        successBox.textContent = '';
+        errorBox.textContent = result.message;
+      }
     });
 
     document.getElementById('show-register').addEventListener('click', (e) => {
@@ -691,6 +782,192 @@ class SpotFinderRouter {
   }
 
   // -----------------------------------------------------------
+  // PARTNER: DASHBOARD (add & manage their own listings only)
+  // -----------------------------------------------------------
+  renderPartnerDashboard() {
+    const areas = window.COIMBATORE_DATA.areas;
+    const partner = window.SpotFinderAuth.currentUser();
+    const myListings = window.SpotFinderAuth.getMyListings(partner.username);
+
+    this.appView.innerHTML = `
+      <div class="admin-wrapper">
+        <div class="admin-header">
+          <div>
+            <span class="section-subtitle">Welcome, ${partner.name} · ${partner.businessName}</span>
+            <h2 class="section-title" style="text-align:left;">Partner Dashboard</h2>
+          </div>
+          <a href="#/" class="action-btn-outline"><i class="fa-solid fa-house"></i> View Site</a>
+        </div>
+
+        <div class="admin-panel-grid">
+          <!-- FORM -->
+          <div class="admin-form-card">
+            <h3><i class="fa-solid fa-square-plus"></i> List Your Business</h3>
+            <form id="partner-listing-form" class="auth-form">
+              <label class="admin-label">Place / Area</label>
+              <select id="partner-area-select" class="admin-select" required>
+                <option value="">Select a place...</option>
+                ${areas.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+              </select>
+
+              <label class="admin-label">Listing Type</label>
+              <select id="partner-category-select" class="admin-select">
+                <option value="restaurants">Restaurant / Hotel</option>
+                <option value="spots">Tourist Spot</option>
+              </select>
+
+              <input type="text" id="partner-listing-name" placeholder="Business Name" required>
+
+              <div id="partner-spot-fields" class="admin-subfields" style="display:none;">
+                <textarea id="partner-spot-desc" placeholder="Description" rows="2"></textarea>
+                <input type="text" id="partner-spot-location" placeholder="Location / Address">
+                <input type="text" id="partner-spot-entryfee" placeholder="Entry Fee (e.g. Free, ₹20)">
+                <input type="text" id="partner-spot-timings" placeholder="Timings">
+                <input type="text" id="partner-spot-besttime" placeholder="Best Time to Visit">
+              </div>
+
+              <div id="partner-restaurant-fields" class="admin-subfields">
+                <input type="text" id="partner-rest-cuisine" placeholder="Cuisine (e.g. South Indian)">
+                <input type="text" id="partner-rest-price" placeholder="Price Scale (e.g. ₹₹ Moderate)">
+                <input type="text" id="partner-rest-rating" placeholder="Rating (e.g. 4.5)">
+                <input type="text" id="partner-rest-reviews" placeholder="Number of Reviews">
+                <input type="text" id="partner-rest-location" placeholder="Address">
+                <input type="text" id="partner-rest-hours" placeholder="Opening Hours">
+                <input type="text" id="partner-rest-contact" placeholder="Contact Number">
+              </div>
+
+              <input type="text" id="partner-listing-mapurl" placeholder="Google Maps URL (optional)">
+
+              <label class="admin-label">Photo</label>
+              <input type="file" id="partner-listing-image-file" accept="image/*">
+              <input type="text" id="partner-listing-image-url" placeholder="...or paste an image URL">
+
+              <div class="auth-error" id="partner-listing-error"></div>
+              <div class="auth-success" id="partner-listing-success"></div>
+              <button type="submit" class="action-btn-primary auth-submit-btn">Submit Listing</button>
+            </form>
+          </div>
+
+          <!-- MY LISTINGS -->
+          <div class="admin-list-card">
+            <h3><i class="fa-solid fa-list"></i> My Listings</h3>
+            <div class="admin-existing-list">
+              ${myListings.length === 0 ? '<p class="admin-empty-note">You haven\'t added any listings yet.</p>' : myListings.map(l => `
+                <div class="admin-existing-item">
+                  <img src="${l.item.image}" alt="${l.item.name}">
+                  <div class="admin-existing-info">
+                    <strong>${l.item.name}</strong>
+                    <span>${l.areaName} · ${l.category === 'spots' ? 'Tourist Spot' : 'Restaurant/Hotel'}</span>
+                  </div>
+                  <button class="admin-delete-btn" data-area="${l.areaId}" data-category="${l.category}" data-id="${l.item.id}" title="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.bindPartnerEvents(partner.username);
+  }
+
+  bindPartnerEvents(ownerUsername) {
+    const categorySelect = document.getElementById('partner-category-select');
+    const spotFields = document.getElementById('partner-spot-fields');
+    const restaurantFields = document.getElementById('partner-restaurant-fields');
+
+    const toggleCategoryFields = () => {
+      const isSpot = categorySelect.value === 'spots';
+      spotFields.style.display = isSpot ? 'flex' : 'none';
+      restaurantFields.style.display = isSpot ? 'none' : 'flex';
+    };
+    toggleCategoryFields();
+    categorySelect.addEventListener('change', toggleCategoryFields);
+
+    const readFileAsDataUrl = (fileInput) => {
+      return new Promise((resolve) => {
+        const file = fileInput.files[0];
+        if (!file) return resolve(null);
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    };
+
+    document.getElementById('partner-listing-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorBox = document.getElementById('partner-listing-error');
+      const successBox = document.getElementById('partner-listing-success');
+      errorBox.textContent = '';
+      successBox.textContent = '';
+
+      const areaId = document.getElementById('partner-area-select').value;
+      if (!areaId) {
+        errorBox.textContent = 'Please select a place for your listing.';
+        return;
+      }
+
+      const category = categorySelect.value;
+      const name = document.getElementById('partner-listing-name').value.trim();
+      if (!name) {
+        errorBox.textContent = 'Please enter your business name.';
+        return;
+      }
+
+      let image = await readFileAsDataUrl(document.getElementById('partner-listing-image-file'));
+      if (!image) image = document.getElementById('partner-listing-image-url').value.trim();
+      if (!image) image = 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=800';
+
+      const mapUrl = document.getElementById('partner-listing-mapurl').value.trim() || `https://maps.google.com/?q=${encodeURIComponent(name + ' Coimbatore')}`;
+      const itemId = `${window.SpotFinderAuth.slugify(name)}-${Date.now()}`;
+
+      let item;
+      if (category === 'spots') {
+        item = {
+          id: itemId,
+          name,
+          description: document.getElementById('partner-spot-desc').value.trim() || 'A great spot to explore in Coimbatore.',
+          location: document.getElementById('partner-spot-location').value.trim() || 'Coimbatore',
+          entryFee: document.getElementById('partner-spot-entryfee').value.trim() || 'Free',
+          timings: document.getElementById('partner-spot-timings').value.trim() || '9:00 AM - 6:00 PM',
+          bestTime: document.getElementById('partner-spot-besttime').value.trim() || 'Anytime',
+          mapUrl,
+          image
+        };
+      } else {
+        item = {
+          id: itemId,
+          name,
+          rating: document.getElementById('partner-rest-rating').value.trim() || '4.0',
+          reviews: document.getElementById('partner-rest-reviews').value.trim() || '0',
+          cuisine: document.getElementById('partner-rest-cuisine').value.trim() || 'Multi-Cuisine',
+          price: document.getElementById('partner-rest-price').value.trim() || '₹₹ (Moderate)',
+          location: document.getElementById('partner-rest-location').value.trim() || 'Coimbatore',
+          hours: document.getElementById('partner-rest-hours').value.trim() || '9:00 AM - 10:00 PM',
+          contact: document.getElementById('partner-rest-contact').value.trim() || 'N/A',
+          mapUrl,
+          image
+        };
+      }
+
+      window.SpotFinderAuth.addListing(areaId, category, item, ownerUsername);
+      successBox.textContent = `"${name}" submitted successfully!`;
+      setTimeout(() => this.renderPartnerDashboard(), 700);
+    });
+
+    document.querySelectorAll('.admin-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('Delete this listing?')) return;
+        window.SpotFinderAuth.deleteListing(btn.dataset.area, btn.dataset.category, btn.dataset.id);
+        this.renderPartnerDashboard();
+      });
+    });
+  }
+
+  // -----------------------------------------------------------
   // PAGE 1: HOME PAGE
   // -----------------------------------------------------------
   renderHome() {
@@ -916,20 +1193,27 @@ class SpotFinderRouter {
         </div>
 
         <div class="list-grid">
-          ${items.map(item => `
+          ${items.map(item => {
+            const avg = window.SpotFinderAuth.getAverageRating(area.id, category, item.id);
+            const isFav = window.SpotFinderAuth.isFavorite(area.id, category, item.id);
+            return `
             <div class="list-card">
               <div class="list-card-img" style="background-image: url('${item.image}');">
                 <span class="list-card-badge">${isSpots ? 'Sightseeing' : 'Gastronomy'}</span>
+                <button class="fav-btn ${isFav ? 'active' : ''}" data-area="${area.id}" data-category="${category}" data-id="${item.id}" title="Save to favorites">
+                  <i class="fa-solid fa-heart"></i>
+                </button>
               </div>
               <div class="list-card-body">
                 <h3 class="list-card-title">${item.name}</h3>
+                ${avg ? `<span class="list-card-rating"><i class="fa-solid fa-star"></i> ${avg.average} (${avg.count} review${avg.count === 1 ? '' : 's'})</span>` : ''}
                 <p class="list-card-desc">${item.description || "Experience the best of Coimbatore culinary offerings or historical landscapes at this verified location."}</p>
                 <button class="list-card-btn" onclick="window.location.hash='#/area/${area.id}/details/${category}/${item.id}'">
                   View Details
                 </button>
               </div>
             </div>
-          `).join('')}
+          `;}).join('')}
         </div>
 
         <div style="margin-top: 4rem; text-align: center;">
@@ -939,6 +1223,23 @@ class SpotFinderRouter {
         </div>
       </div>
     `;
+
+    this.bindFavoriteButtons();
+  }
+
+  // Shared helper: wires up every .fav-btn heart icon currently on screen
+  bindFavoriteButtons() {
+    document.querySelectorAll('.fav-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const result = window.SpotFinderAuth.toggleFavorite(btn.dataset.area, btn.dataset.category, btn.dataset.id);
+        if (!result.success) {
+          window.location.hash = '#/login';
+          return;
+        }
+        btn.classList.toggle('active', result.added);
+      });
+    });
   }
 
   // -----------------------------------------------------------
@@ -1000,14 +1301,20 @@ class SpotFinderRouter {
                 <button class="action-btn-primary" onclick="window.SpotFinderApp.viewMap('${data.mapUrl}')">
                   <i class="fa-solid fa-location-arrow"></i> Google Maps Directions
                 </button>
+                <button class="fav-btn details-fav-btn ${window.SpotFinderAuth.isFavorite(area.id, 'spots', data.id) ? 'active' : ''}" data-area="${area.id}" data-category="spots" data-id="${data.id}" title="Save to favorites">
+                  <i class="fa-solid fa-heart"></i>
+                </button>
                 <button class="action-btn-outline" onclick="window.location.hash='#/area/${area.id}/list/spots'">
                   Back to List
                 </button>
               </div>
             </div>
           </div>
+          ${this.renderReviewsSection(area.id, 'spots', data.id)}
         </div>
       `;
+      this.bindFavoriteButtons();
+      this.bindReviewEvents(area.id, 'spots', data.id);
     } else {
       this.appView.innerHTML = `
         <div class="details-container">
@@ -1051,15 +1358,164 @@ class SpotFinderRouter {
                 <button class="action-btn-primary" onclick="window.SpotFinderApp.viewMap('${data.mapUrl}')">
                   <i class="fa-solid fa-location-arrow"></i> Google Maps Directions
                 </button>
+                <button class="fav-btn details-fav-btn ${window.SpotFinderAuth.isFavorite(area.id, 'restaurants', data.id) ? 'active' : ''}" data-area="${area.id}" data-category="restaurants" data-id="${data.id}" title="Save to favorites">
+                  <i class="fa-solid fa-heart"></i>
+                </button>
                 <button class="action-btn-outline" onclick="window.location.hash='#/area/${area.id}/list/restaurants'">
                   Back to List
                 </button>
               </div>
             </div>
           </div>
+          ${this.renderReviewsSection(area.id, 'restaurants', data.id)}
         </div>
       `;
+      this.bindFavoriteButtons();
+      this.bindReviewEvents(area.id, 'restaurants', data.id);
     }
+  }
+
+  // -----------------------------------------------------------
+  // REVIEWS: shared section markup + events (used on details pages)
+  // -----------------------------------------------------------
+  renderReviewsSection(areaId, category, itemId) {
+    const reviews = window.SpotFinderAuth.getReviews(areaId, category, itemId);
+    const avg = window.SpotFinderAuth.getAverageRating(areaId, category, itemId);
+    const session = window.SpotFinderAuth.currentUser();
+    const starsMarkup = (n) => Array.from({ length: 5 }, (_, i) => `<i class="fa-solid fa-star${i < n ? '' : '-o'}"></i>`).join('');
+
+    return `
+      <div class="reviews-card">
+        <div class="reviews-header">
+          <h3><i class="fa-solid fa-comment-dots"></i> Reviews ${avg ? `<span class="reviews-avg">${avg.average} <i class="fa-solid fa-star"></i> · ${avg.count} review${avg.count === 1 ? '' : 's'}</span>` : ''}</h3>
+        </div>
+
+        <form id="review-form" class="auth-form review-form">
+          <div class="star-picker" id="star-picker">
+            ${[1,2,3,4,5].map(n => `<i class="fa-regular fa-star star-pick" data-value="${n}"></i>`).join('')}
+            <input type="hidden" id="review-rating" value="0">
+          </div>
+          <textarea id="review-text" placeholder="Share your experience..." rows="3"></textarea>
+          <div class="auth-error" id="review-error"></div>
+          <div class="auth-success" id="review-success"></div>
+          <button type="submit" class="action-btn-outline">Post Review</button>
+        </form>
+
+        <div class="review-list">
+          ${reviews.length === 0 ? '<p class="admin-empty-note">No reviews yet. Be the first to share your experience!</p>' : reviews.map(r => `
+            <div class="review-item">
+              <div class="review-item-head">
+                <span class="review-item-name"><i class="fa-solid fa-circle-user"></i> ${r.name}</span>
+                <span class="review-item-stars">${starsMarkup(r.rating)}</span>
+              </div>
+              <p class="review-item-text">${r.text}</p>
+              <div class="review-item-foot">
+                <span>${new Date(r.date).toLocaleDateString()}</span>
+                ${session && (session.username === r.username || window.SpotFinderAuth.isAdmin()) ? `<button class="review-delete-btn" data-review-id="${r.id}">Delete</button>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  bindReviewEvents(areaId, category, itemId) {
+    const stars = document.querySelectorAll('.star-pick');
+    const ratingInput = document.getElementById('review-rating');
+
+    stars.forEach(star => {
+      star.addEventListener('click', () => {
+        const value = Number(star.dataset.value);
+        ratingInput.value = value;
+        stars.forEach(s => {
+          s.classList.toggle('fa-solid', Number(s.dataset.value) <= value);
+          s.classList.toggle('fa-regular', Number(s.dataset.value) > value);
+        });
+      });
+    });
+
+    const form = document.getElementById('review-form');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const errorBox = document.getElementById('review-error');
+        const successBox = document.getElementById('review-success');
+        const rating = Number(ratingInput.value);
+        const text = document.getElementById('review-text').value;
+        const result = window.SpotFinderAuth.addReview(areaId, category, itemId, rating, text);
+        if (result.success) {
+          errorBox.textContent = '';
+          successBox.textContent = 'Review posted!';
+          setTimeout(() => this.renderPlaceDetails(areaId, category, itemId), 500);
+        } else {
+          successBox.textContent = '';
+          errorBox.textContent = result.message;
+        }
+      });
+    }
+
+    document.querySelectorAll('.review-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('Delete this review?')) return;
+        window.SpotFinderAuth.deleteReview(btn.dataset.reviewId);
+        this.renderPlaceDetails(areaId, category, itemId);
+      });
+    });
+  }
+
+  // -----------------------------------------------------------
+  // PAGE: MY FAVORITES
+  // -----------------------------------------------------------
+  renderFavorites() {
+    const favs = window.SpotFinderAuth.getFavorites();
+    const items = favs.map(f => {
+      const area = window.COIMBATORE_DATA.areas.find(a => a.id === f.areaId);
+      if (!area) return null;
+      const item = (f.category === 'spots' ? area.spots : area.restaurants).find(i => i.id === f.itemId);
+      if (!item) return null;
+      return { ...item, areaId: area.id, areaName: area.name, category: f.category };
+    }).filter(Boolean);
+
+    this.appView.innerHTML = `
+      <div class="list-wrapper">
+        <div class="section-header" style="margin-top: 8rem; margin-bottom: 3rem; text-align: left;">
+          <span class="section-subtitle"><i class="fa-solid fa-heart"></i> Saved by you</span>
+          <h2 class="section-title">My Favorites</h2>
+        </div>
+
+        ${items.length === 0 ? `
+          <p class="admin-empty-note">You haven't saved any favorites yet. Tap the heart icon on any spot or restaurant to save it here.</p>
+        ` : `
+        <div class="list-grid">
+          ${items.map(item => `
+            <div class="list-card">
+              <div class="list-card-img" style="background-image: url('${item.image}');">
+                <span class="list-card-badge">${item.category === 'spots' ? 'Sightseeing' : 'Gastronomy'}</span>
+                <button class="fav-btn active" data-area="${item.areaId}" data-category="${item.category}" data-id="${item.id}" title="Remove from favorites">
+                  <i class="fa-solid fa-heart"></i>
+                </button>
+              </div>
+              <div class="list-card-body">
+                <h3 class="list-card-title">${item.name}</h3>
+                <span class="list-card-rating"><i class="fa-solid fa-location-dot"></i> ${item.areaName}</span>
+                <p class="list-card-desc">${item.description || 'Saved from ' + item.areaName + '.'}</p>
+                <button class="list-card-btn" onclick="window.location.hash='#/area/${item.areaId}/details/${item.category}/${item.id}'">
+                  View Details
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        `}
+      </div>
+    `;
+
+    this.bindFavoriteButtons();
+    // Re-render this page live when a favorite is removed from within it
+    document.querySelectorAll('.fav-btn').forEach(btn => {
+      btn.addEventListener('click', () => setTimeout(() => this.renderFavorites(), 150));
+    });
   }
 }
 
