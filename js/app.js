@@ -199,3 +199,4 @@ window.SpotFinderApp = null;
 window.addEventListener('DOMContentLoaded', () => {
   window.SpotFinderApp = new SpotFinderApp();
 });
+
