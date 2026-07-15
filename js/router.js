@@ -20,8 +20,29 @@ class SpotFinderRouter {
   }
 
   async handleRoute() {
-    const hash = window.location.hash || '#/';
-    
+    let hash = window.location.hash || '#/';
+
+    // -----------------------------------------------------------
+    // AUTH GUARD
+    // Everything except #/login requires a logged-in session.
+    // Admin-only pages require an admin session.
+    // -----------------------------------------------------------
+    const isLoggedIn = window.SpotFinderAuth && window.SpotFinderAuth.isLoggedIn();
+    const isAdmin = window.SpotFinderAuth && window.SpotFinderAuth.isAdmin();
+
+    if (hash.startsWith('#/admin') && !isAdmin) {
+      window.location.hash = isLoggedIn ? '#/' : '#/login';
+      return;
+    }
+    if (!isLoggedIn && hash !== '#/login') {
+      window.location.hash = '#/login';
+      return;
+    }
+    if (isLoggedIn && hash === '#/login') {
+      window.location.hash = '#/';
+      return;
+    }
+
     // Animate view out
     await this.animateOut();
 
@@ -29,7 +50,15 @@ class SpotFinderRouter {
     window.scrollTo({ top: 0, behavior: 'instant' });
 
     // Routing conditions
-    if (hash === '#/' || hash === '#home') {
+    if (hash === '#/login') {
+      this.renderLogin();
+    } else if (hash === '#/admin') {
+      this.renderAdminDashboard();
+    } else if (hash === '#/admin/manage') {
+      this.renderAdminManage();
+    } else if (hash === '#/admin/accounts') {
+      this.renderAdminAccounts();
+    } else if (hash === '#/' || hash === '#home') {
       this.renderHome();
       this.initHeroSlider();
     } else if (hash.startsWith('#/area/') && hash.includes('/list/')) {
@@ -56,6 +85,7 @@ class SpotFinderRouter {
 
     // Update active nav links
     this.updateActiveNav(hash);
+    this.updateAuthNav();
 
     // Animate view in
     await this.animateIn();
@@ -107,6 +137,557 @@ class SpotFinderRouter {
       // For any subpages, highlight Explore
       navExplore.classList.add('active');
     }
+  }
+
+  // Shows/hides nav auth controls (Login/Logout/Admin link) based on session
+  updateAuthNav() {
+    const authSlot = document.getElementById('nav-auth-slot');
+    if (!authSlot) return;
+
+    const auth = window.SpotFinderAuth;
+    if (!auth || !auth.isLoggedIn()) {
+      authSlot.innerHTML = '';
+      return;
+    }
+
+    const user = auth.currentUser();
+    const adminLink = auth.isAdmin()
+      ? `<a href="#/admin" class="nav-link nav-admin-link"><i class="fa-solid fa-user-shield"></i> Admin</a>`
+      : '';
+
+    authSlot.innerHTML = `
+      ${adminLink}
+      <span class="nav-user-chip"><i class="fa-solid fa-circle-user"></i> ${user.name}</span>
+      <button class="nav-logout-btn" id="nav-logout-btn" title="Log out"><i class="fa-solid fa-right-from-bracket"></i></button>
+    `;
+
+    const logoutBtn = document.getElementById('nav-logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        auth.logout();
+        window.location.hash = '#/login';
+      });
+    }
+  }
+
+  // -----------------------------------------------------------
+  // PAGE 0: LOGIN PAGE (Admin + User)
+  // -----------------------------------------------------------
+  renderLogin() {
+    this.appView.innerHTML = `
+      <div class="auth-wrapper">
+        <div class="auth-card">
+          <div class="auth-brand">
+            <div class="logo-symbol"><i class="fa-solid fa-compass"></i></div>
+            <div class="logo-text">Spot <span>Finder</span></div>
+          </div>
+          <p class="auth-tagline">Sign in to explore Coimbatore's finest spots &amp; dining</p>
+
+          <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="user">User Login</button>
+            <button class="auth-tab" data-tab="admin">Admin Login</button>
+          </div>
+
+          <!-- USER LOGIN -->
+          <div class="auth-panel active" id="panel-user-login">
+            <form id="user-login-form" class="auth-form">
+              <input type="text" id="user-login-username" placeholder="Username" required autocomplete="username">
+              <input type="password" id="user-login-password" placeholder="Password" required autocomplete="current-password">
+              <div class="auth-error" id="user-login-error"></div>
+              <button type="submit" class="action-btn-primary auth-submit-btn">Log In</button>
+            </form>
+            <p class="auth-switch">New here? <a href="#" id="show-register">Create a user account</a></p>
+          </div>
+
+          <!-- USER REGISTER -->
+          <div class="auth-panel" id="panel-user-register">
+            <form id="user-register-form" class="auth-form">
+              <input type="text" id="reg-name" placeholder="Full Name" required>
+              <input type="text" id="reg-username" placeholder="Choose a username" required>
+              <input type="password" id="reg-password" placeholder="Choose a password" required minlength="4">
+              <div class="auth-error" id="user-register-error"></div>
+              <div class="auth-success" id="user-register-success"></div>
+              <button type="submit" class="action-btn-primary auth-submit-btn">Create Account</button>
+            </form>
+            <p class="auth-switch">Already registered? <a href="#" id="show-login">Back to login</a></p>
+          </div>
+
+          <!-- ADMIN LOGIN -->
+          <div class="auth-panel" id="panel-admin-login">
+            <form id="admin-login-form" class="auth-form">
+              <input type="text" id="admin-login-username" placeholder="Admin Username" required autocomplete="username">
+              <input type="password" id="admin-login-password" placeholder="Admin Password" required autocomplete="current-password">
+              <div class="auth-error" id="admin-login-error"></div>
+              <button type="submit" class="action-btn-primary auth-submit-btn">Admin Log In</button>
+            </form>
+            <p class="auth-hint"><i class="fa-solid fa-lock"></i> Access is limited to ${window.SpotFinderAuth.MAX_ADMINS} authorized admin accounts.</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.bindLoginEvents();
+  }
+
+  bindLoginEvents() {
+    const tabs = document.querySelectorAll('.auth-tab');
+    const panels = {
+      user: document.getElementById('panel-user-login'),
+      admin: document.getElementById('panel-admin-login')
+    };
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        Object.values(panels).forEach(p => p.classList.remove('active'));
+        document.getElementById('panel-user-register').classList.remove('active');
+        panels[tab.dataset.tab].classList.add('active');
+      });
+    });
+
+    document.getElementById('show-register').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('panel-user-login').classList.remove('active');
+      document.getElementById('panel-user-register').classList.add('active');
+    });
+
+    document.getElementById('show-login').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('panel-user-register').classList.remove('active');
+      document.getElementById('panel-user-login').classList.add('active');
+    });
+
+    document.getElementById('user-login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('user-login-username').value.trim();
+      const password = document.getElementById('user-login-password').value;
+      const result = window.SpotFinderAuth.loginUser(username, password);
+      const errorBox = document.getElementById('user-login-error');
+      if (result.success) {
+        errorBox.textContent = '';
+        window.location.hash = '#/';
+      } else {
+        errorBox.textContent = result.message;
+      }
+    });
+
+    document.getElementById('user-register-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const username = document.getElementById('reg-username').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const result = window.SpotFinderAuth.registerUser(name, username, password);
+      const errorBox = document.getElementById('user-register-error');
+      const successBox = document.getElementById('user-register-success');
+      if (result.success) {
+        errorBox.textContent = '';
+        successBox.textContent = 'Account created! You can log in now.';
+        setTimeout(() => {
+          document.getElementById('panel-user-register').classList.remove('active');
+          document.getElementById('panel-user-login').classList.add('active');
+        }, 900);
+      } else {
+        successBox.textContent = '';
+        errorBox.textContent = result.message;
+      }
+    });
+
+    document.getElementById('admin-login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('admin-login-username').value.trim();
+      const password = document.getElementById('admin-login-password').value;
+      const result = window.SpotFinderAuth.loginAdmin(username, password);
+      const errorBox = document.getElementById('admin-login-error');
+      if (result.success) {
+        errorBox.textContent = '';
+        window.location.hash = '#/admin';
+      } else {
+        errorBox.textContent = result.message;
+      }
+    });
+  }
+
+  // -----------------------------------------------------------
+  // ADMIN: DASHBOARD
+  // -----------------------------------------------------------
+  renderAdminDashboard() {
+    const areas = window.COIMBATORE_DATA.areas;
+    const totalSpots = areas.reduce((sum, a) => sum + a.spots.length, 0);
+    const totalRestaurants = areas.reduce((sum, a) => sum + a.restaurants.length, 0);
+    const admins = window.SpotFinderAuth.getAdmins();
+    const user = window.SpotFinderAuth.currentUser();
+
+    this.appView.innerHTML = `
+      <div class="admin-wrapper">
+        <div class="admin-header">
+          <div>
+            <span class="section-subtitle">Welcome, ${user.name}</span>
+            <h2 class="section-title" style="text-align:left;">Admin Dashboard</h2>
+          </div>
+          <a href="#/" class="action-btn-outline"><i class="fa-solid fa-house"></i> View Site</a>
+        </div>
+
+        <div class="admin-stats-grid">
+          <div class="admin-stat-card">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <span class="admin-stat-num">${areas.length}</span>
+            <span class="admin-stat-label">Areas / Places</span>
+          </div>
+          <div class="admin-stat-card">
+            <i class="fa-solid fa-mountain-sun"></i>
+            <span class="admin-stat-num">${totalSpots}</span>
+            <span class="admin-stat-label">Tourist Spots</span>
+          </div>
+          <div class="admin-stat-card">
+            <i class="fa-solid fa-utensils"></i>
+            <span class="admin-stat-num">${totalRestaurants}</span>
+            <span class="admin-stat-label">Restaurants / Hotels</span>
+          </div>
+          <div class="admin-stat-card">
+            <i class="fa-solid fa-user-shield"></i>
+            <span class="admin-stat-num">${admins.length} / ${window.SpotFinderAuth.MAX_ADMINS}</span>
+            <span class="admin-stat-label">Admin Accounts</span>
+          </div>
+        </div>
+
+        <div class="admin-actions-grid">
+          <a href="#/admin/manage" class="admin-action-card">
+            <i class="fa-solid fa-plus"></i>
+            <h3>Manage Places &amp; Hotels</h3>
+            <p>Add a new place, or add tourist spots and hotels/restaurants to an existing place.</p>
+          </a>
+          <a href="#/admin/accounts" class="admin-action-card">
+            <i class="fa-solid fa-user-shield"></i>
+            <h3>Manage Admin Accounts</h3>
+            <p>View, add, or remove admin accounts (maximum ${window.SpotFinderAuth.MAX_ADMINS}).</p>
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
+  // -----------------------------------------------------------
+  // ADMIN: MANAGE PLACES & HOTELS
+  // -----------------------------------------------------------
+  renderAdminManage() {
+    const areas = window.COIMBATORE_DATA.areas;
+
+    this.appView.innerHTML = `
+      <div class="admin-wrapper">
+        <div class="admin-header">
+          <div>
+            <span class="section-subtitle"><a href="#/admin" style="color:var(--color-secondary); font-weight:700;">Admin</a> &gt; Manage</span>
+            <h2 class="section-title" style="text-align:left;">Places &amp; Hotels</h2>
+          </div>
+        </div>
+
+        <div class="admin-panel-grid">
+          <!-- FORM -->
+          <div class="admin-form-card">
+            <h3><i class="fa-solid fa-square-plus"></i> Add New Listing</h3>
+            <form id="admin-listing-form" class="auth-form">
+              <label class="admin-label">Place</label>
+              <select id="listing-area-select" class="admin-select">
+                <option value="">+ Add a New Place</option>
+                ${areas.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+              </select>
+
+              <!-- New Place fields (shown when "+ Add a New Place" selected) -->
+              <div id="new-place-fields" class="admin-subfields">
+                <input type="text" id="new-place-name" placeholder="Place / Area Name (e.g. Peelamedu)">
+                <input type="text" id="new-place-tagline" placeholder="Tagline (e.g. The Tech Hub of Kovai)">
+                <textarea id="new-place-desc" placeholder="Short description of this area" rows="2"></textarea>
+                <label class="admin-label">Banner Image</label>
+                <input type="file" id="new-place-image-file" accept="image/*">
+                <input type="text" id="new-place-image-url" placeholder="...or paste a banner image URL">
+              </div>
+
+              <label class="admin-label">Listing Type</label>
+              <select id="listing-category-select" class="admin-select">
+                <option value="spots">Tourist Spot</option>
+                <option value="restaurants">Restaurant / Hotel</option>
+              </select>
+
+              <input type="text" id="listing-name" placeholder="Name" required>
+
+              <!-- Spot-only fields -->
+              <div id="spot-fields" class="admin-subfields">
+                <textarea id="spot-desc" placeholder="Description" rows="2"></textarea>
+                <input type="text" id="spot-location" placeholder="Location / Address">
+                <input type="text" id="spot-entryfee" placeholder="Entry Fee (e.g. Free, ₹20)">
+                <input type="text" id="spot-timings" placeholder="Timings (e.g. 10:00 AM - 6:00 PM)">
+                <input type="text" id="spot-besttime" placeholder="Best Time to Visit">
+              </div>
+
+              <!-- Restaurant-only fields -->
+              <div id="restaurant-fields" class="admin-subfields" style="display:none;">
+                <input type="text" id="rest-cuisine" placeholder="Cuisine (e.g. South Indian)">
+                <input type="text" id="rest-price" placeholder="Price Scale (e.g. ₹₹ Moderate)">
+                <input type="text" id="rest-rating" placeholder="Rating (e.g. 4.5)">
+                <input type="text" id="rest-reviews" placeholder="Number of Reviews (e.g. 1,200)">
+                <input type="text" id="rest-location" placeholder="Address">
+                <input type="text" id="rest-hours" placeholder="Opening Hours">
+                <input type="text" id="rest-contact" placeholder="Contact Number">
+              </div>
+
+              <input type="text" id="listing-mapurl" placeholder="Google Maps URL (optional)">
+
+              <label class="admin-label">Photo</label>
+              <input type="file" id="listing-image-file" accept="image/*">
+              <input type="text" id="listing-image-url" placeholder="...or paste an image URL">
+
+              <div class="auth-error" id="admin-listing-error"></div>
+              <div class="auth-success" id="admin-listing-success"></div>
+              <button type="submit" class="action-btn-primary auth-submit-btn">Save Listing</button>
+            </form>
+          </div>
+
+          <!-- EXISTING LISTINGS -->
+          <div class="admin-list-card">
+            <h3><i class="fa-solid fa-list"></i> Existing Listings</h3>
+            <div class="admin-existing-list" id="admin-existing-list">
+              ${areas.map(area => `
+                <div class="admin-area-group">
+                  <h4>${area.name}</h4>
+                  ${[...area.spots.map(s => ({...s, category:'spots', areaId:area.id})), ...area.restaurants.map(r => ({...r, category:'restaurants', areaId:area.id}))].map(item => `
+                    <div class="admin-existing-item">
+                      <img src="${item.image}" alt="${item.name}">
+                      <div class="admin-existing-info">
+                        <strong>${item.name}</strong>
+                        <span>${item.category === 'spots' ? 'Tourist Spot' : 'Restaurant/Hotel'}</span>
+                      </div>
+                      <button class="admin-delete-btn" data-area="${item.areaId}" data-category="${item.category}" data-id="${item.id}" title="Delete">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+                  `).join('') || '<p class="admin-empty-note">No listings yet.</p>'}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.bindAdminManageEvents();
+  }
+
+  bindAdminManageEvents() {
+    const areaSelect = document.getElementById('listing-area-select');
+    const newPlaceFields = document.getElementById('new-place-fields');
+    const categorySelect = document.getElementById('listing-category-select');
+    const spotFields = document.getElementById('spot-fields');
+    const restaurantFields = document.getElementById('restaurant-fields');
+
+    const toggleNewPlaceFields = () => {
+      newPlaceFields.style.display = areaSelect.value === '' ? 'flex' : 'none';
+    };
+    toggleNewPlaceFields();
+    areaSelect.addEventListener('change', toggleNewPlaceFields);
+
+    const toggleCategoryFields = () => {
+      const isSpot = categorySelect.value === 'spots';
+      spotFields.style.display = isSpot ? 'flex' : 'none';
+      restaurantFields.style.display = isSpot ? 'none' : 'flex';
+    };
+    toggleCategoryFields();
+    categorySelect.addEventListener('change', toggleCategoryFields);
+
+    // Helper: read a file input as a data URL (Promise)
+    const readFileAsDataUrl = (fileInput) => {
+      return new Promise((resolve) => {
+        const file = fileInput.files[0];
+        if (!file) return resolve(null);
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    };
+
+    document.getElementById('admin-listing-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorBox = document.getElementById('admin-listing-error');
+      const successBox = document.getElementById('admin-listing-success');
+      errorBox.textContent = '';
+      successBox.textContent = '';
+
+      let areaId = areaSelect.value;
+
+      // Create new place if needed
+      if (!areaId) {
+        const placeName = document.getElementById('new-place-name').value.trim();
+        if (!placeName) {
+          errorBox.textContent = 'Please enter a name for the new place.';
+          return;
+        }
+        const placeTagline = document.getElementById('new-place-tagline').value.trim() || 'Discover this area';
+        const placeDesc = document.getElementById('new-place-desc').value.trim() || 'A wonderful area of Coimbatore worth exploring.';
+        let bannerImage = await readFileAsDataUrl(document.getElementById('new-place-image-file'));
+        if (!bannerImage) bannerImage = document.getElementById('new-place-image-url').value.trim();
+        if (!bannerImage) bannerImage = 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=800';
+
+        areaId = window.SpotFinderAuth.slugify(placeName) || `place-${Date.now()}`;
+        if (window.COIMBATORE_DATA.areas.some(a => a.id === areaId)) {
+          areaId = `${areaId}-${Date.now()}`;
+        }
+
+        window.SpotFinderAuth.addArea({
+          id: areaId,
+          name: placeName,
+          tagline: placeTagline,
+          bannerImage,
+          description: placeDesc,
+          spots: [],
+          restaurants: []
+        });
+      }
+
+      const category = categorySelect.value;
+      const name = document.getElementById('listing-name').value.trim();
+      if (!name) {
+        errorBox.textContent = 'Please enter a name for the listing.';
+        return;
+      }
+
+      let image = await readFileAsDataUrl(document.getElementById('listing-image-file'));
+      if (!image) image = document.getElementById('listing-image-url').value.trim();
+      if (!image) image = 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?q=80&w=800';
+
+      const mapUrl = document.getElementById('listing-mapurl').value.trim() || `https://maps.google.com/?q=${encodeURIComponent(name + ' Coimbatore')}`;
+      const itemId = `${window.SpotFinderAuth.slugify(name)}-${Date.now()}`;
+
+      let item;
+      if (category === 'spots') {
+        item = {
+          id: itemId,
+          name,
+          description: document.getElementById('spot-desc').value.trim() || 'A great spot to explore in Coimbatore.',
+          location: document.getElementById('spot-location').value.trim() || 'Coimbatore',
+          entryFee: document.getElementById('spot-entryfee').value.trim() || 'Free',
+          timings: document.getElementById('spot-timings').value.trim() || '9:00 AM - 6:00 PM',
+          bestTime: document.getElementById('spot-besttime').value.trim() || 'Anytime',
+          mapUrl,
+          image
+        };
+      } else {
+        item = {
+          id: itemId,
+          name,
+          rating: document.getElementById('rest-rating').value.trim() || '4.0',
+          reviews: document.getElementById('rest-reviews').value.trim() || '0',
+          cuisine: document.getElementById('rest-cuisine').value.trim() || 'Multi-Cuisine',
+          price: document.getElementById('rest-price').value.trim() || '₹₹ (Moderate)',
+          location: document.getElementById('rest-location').value.trim() || 'Coimbatore',
+          hours: document.getElementById('rest-hours').value.trim() || '9:00 AM - 10:00 PM',
+          contact: document.getElementById('rest-contact').value.trim() || 'N/A',
+          mapUrl,
+          image
+        };
+      }
+
+      window.SpotFinderAuth.addListing(areaId, category, item);
+      successBox.textContent = `"${name}" added successfully!`;
+      setTimeout(() => this.renderAdminManage(), 700);
+    });
+
+    document.querySelectorAll('.admin-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('Delete this listing?')) return;
+        window.SpotFinderAuth.deleteListing(btn.dataset.area, btn.dataset.category, btn.dataset.id);
+        this.renderAdminManage();
+      });
+    });
+  }
+
+  // -----------------------------------------------------------
+  // ADMIN: MANAGE ADMIN ACCOUNTS (max 5)
+  // -----------------------------------------------------------
+  renderAdminAccounts() {
+    const admins = window.SpotFinderAuth.getAdmins();
+    const current = window.SpotFinderAuth.currentUser();
+    const atLimit = admins.length >= window.SpotFinderAuth.MAX_ADMINS;
+
+    this.appView.innerHTML = `
+      <div class="admin-wrapper">
+        <div class="admin-header">
+          <div>
+            <span class="section-subtitle"><a href="#/admin" style="color:var(--color-secondary); font-weight:700;">Admin</a> &gt; Accounts</span>
+            <h2 class="section-title" style="text-align:left;">Admin Accounts (${admins.length}/${window.SpotFinderAuth.MAX_ADMINS})</h2>
+          </div>
+        </div>
+
+        <div class="admin-panel-grid">
+          <div class="admin-form-card">
+            <h3><i class="fa-solid fa-user-plus"></i> Add Admin</h3>
+            ${atLimit ? `<p class="admin-empty-note">Admin limit reached (${window.SpotFinderAuth.MAX_ADMINS} max). Remove an account to add a new one.</p>` : `
+            <form id="add-admin-form" class="auth-form">
+              <input type="text" id="new-admin-name" placeholder="Full Name" required>
+              <input type="text" id="new-admin-username" placeholder="Username" required>
+              <input type="password" id="new-admin-password" placeholder="Password" required minlength="4">
+              <div class="auth-error" id="add-admin-error"></div>
+              <div class="auth-success" id="add-admin-success"></div>
+              <button type="submit" class="action-btn-primary auth-submit-btn">Add Admin</button>
+            </form>
+            `}
+          </div>
+
+          <div class="admin-list-card">
+            <h3><i class="fa-solid fa-user-shield"></i> Current Admins</h3>
+            <div class="admin-existing-list">
+              ${admins.map(a => `
+                <div class="admin-existing-item">
+                  <div class="admin-existing-info">
+                    <strong>${a.name}</strong>
+                    <span>@${a.username} ${a.username === current.username ? '(you)' : ''}</span>
+                  </div>
+                  ${admins.length > 1 ? `<button class="admin-delete-btn" data-username="${a.username}" title="Remove"><i class="fa-solid fa-trash"></i></button>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const form = document.getElementById('add-admin-form');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('new-admin-name').value.trim();
+        const username = document.getElementById('new-admin-username').value.trim();
+        const password = document.getElementById('new-admin-password').value;
+        const result = window.SpotFinderAuth.addAdmin(name, username, password);
+        const errorBox = document.getElementById('add-admin-error');
+        const successBox = document.getElementById('add-admin-success');
+        if (result.success) {
+          errorBox.textContent = '';
+          successBox.textContent = 'Admin added!';
+          setTimeout(() => this.renderAdminAccounts(), 600);
+        } else {
+          successBox.textContent = '';
+          errorBox.textContent = result.message;
+        }
+      });
+    }
+
+    document.querySelectorAll('.admin-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.username === current.username) {
+          if (!confirm('This is your own account. Remove it anyway? You will be logged out.')) return;
+        } else if (!confirm(`Remove admin "${btn.dataset.username}"?`)) {
+          return;
+        }
+        const result = window.SpotFinderAuth.removeAdmin(btn.dataset.username);
+        if (result.success && btn.dataset.username === current.username) {
+          window.SpotFinderAuth.logout();
+          window.location.hash = '#/login';
+        } else {
+          this.renderAdminAccounts();
+        }
+      });
+    });
   }
 
   // -----------------------------------------------------------
