@@ -6,28 +6,28 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Royal Heritage Theme (Light Mode) — Navy, Gold & Terracotta */
-  --bg-main: #FAF6EF;          /* Warm Ivory */
+  /* Golden Harvest Theme (Light Mode) — Orange & Butter Yellow */
+  --bg-main: #FFFBF0;          /* Buttercream */
   --bg-primary: #FFFFFF;       /* White */
-  --bg-secondary: #F1E6D0;     /* Soft Champagne */
-  --bg-tertiary: #E8DCC4;      /* Light Sand */
+  --bg-secondary: #FFF3D6;     /* Soft Butter Yellow */
+  --bg-tertiary: #FFE8B8;      /* Warm Amber Sand */
 
-  --color-primary: #1B1F3B;    /* Deep Royal Navy */
-  --color-primary-rgb: 27, 31, 59;
-  --color-secondary: #C9973A;  /* Rich Gold */
-  --color-secondary-rgb: 201, 151, 58;
-  --color-secondary-hover: #A97B22;
-  --color-accent: #D65B4A;     /* Terracotta Coral */
-  --color-accent-rgb: 214, 91, 74;
+  --color-primary: #B5450F;    /* Deep Burnt Orange */
+  --color-primary-rgb: 181, 69, 15;
+  --color-secondary: #FFB100;  /* Butter/Amber Yellow */
+  --color-secondary-rgb: 255, 177, 0;
+  --color-secondary-hover: #E69500;
+  --color-accent: #FF7A29;     /* Vivid Tangerine */
+  --color-accent-rgb: 255, 122, 41;
 
-  --text-primary: #1B1F3B;     /* Deep Navy Text */
-  --text-secondary: #454A6B;   /* Medium Navy-Grey */
-  --text-muted: #7A7E96;       /* Muted Navy-Grey */
+  --text-primary: #4A2A0C;     /* Deep Brown-Orange Text */
+  --text-secondary: #6E4A22;   /* Medium Warm Brown */
+  --text-muted: #9C7B4F;       /* Muted Warm Tan */
 
   --glass-bg: rgba(255, 255, 255, 0.96);
-  --glass-border: rgba(27, 31, 59, 0.12);
-  --glass-border-hover: rgba(201, 151, 58, 0.45);
-  --glass-shadow: rgba(27, 31, 59, 0.08);
+  --glass-border: rgba(181, 69, 15, 0.14);
+  --glass-border-hover: rgba(255, 177, 0, 0.5);
+  --glass-shadow: rgba(181, 69, 15, 0.08);
 
   --font-display: 'Playfair Display', serif;
   --font-sans: 'Outfit', sans-serif;
@@ -40,25 +40,25 @@
 
 /* Dark Mode Override */
 [data-theme="dark"] {
-  --bg-main: #10121F;          /* Deep Midnight Indigo */
-  --bg-primary: #181B2E;       /* Navy Surface */
-  --bg-secondary: #1F2238;     /* Muted Deep Navy */
-  --bg-tertiary: #262A45;      /* Navy Border Accent */
+  --bg-main: #241505;          /* Deep Roasted Umber */
+  --bg-primary: #2E1B08;       /* Espresso-Orange Surface */
+  --bg-secondary: #3A2410;     /* Muted Deep Amber */
+  --bg-tertiary: #452C14;      /* Amber Border Accent */
 
-  --color-primary: #EFE6D0;    /* Warm Champagne Text Accent */
-  --color-primary-rgb: 239, 230, 208;
-  --color-secondary: #E3B23C;  /* Bright Gold */
-  --color-secondary-rgb: 227, 178, 60;
-  --color-secondary-hover: #F0C866;
-  --color-accent: #FF8066;     /* Bright Coral */
+  --color-primary: #FFE9B3;    /* Warm Butter Text Accent */
+  --color-primary-rgb: 255, 233, 179;
+  --color-secondary: #FFC107;  /* Bright Butter Yellow */
+  --color-secondary-rgb: 255, 193, 7;
+  --color-secondary-hover: #FFD54F;
+  --color-accent: #FF9142;     /* Bright Tangerine */
 
-  --text-primary: #F5F1E6;     /* Warm Cream Text */
-  --text-secondary: #C7C9DA;   /* Light Lavender-Grey Text */
-  --text-muted: #8A8DAE;       /* Muted Lavender-Grey Text */
+  --text-primary: #FFF3D1;     /* Warm Cream Text */
+  --text-secondary: #E8C99A;   /* Light Amber-Tan Text */
+  --text-muted: #B8996B;       /* Muted Amber-Tan Text */
 
-  --glass-bg: rgba(24, 27, 46, 0.96);
-  --glass-border: rgba(227, 178, 60, 0.22);
-  --glass-border-hover: rgba(227, 178, 60, 0.45);
+  --glass-bg: rgba(46, 27, 8, 0.96);
+  --glass-border: rgba(255, 193, 7, 0.22);
+  --glass-border-hover: rgba(255, 193, 7, 0.45);
   --glass-shadow: rgba(0, 0, 0, 0.3);
 }
 
@@ -1138,8 +1138,8 @@ section {
 }
 
 .action-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.35);
+  transform: translateY(-2px) scale(1.015);
+  box-shadow: 0 8px 24px rgba(var(--color-secondary-rgb), 0.4);
 }
 
 .action-btn-outline {
@@ -1447,7 +1447,7 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 40%, #23264a 0%, #10121F 70%);
+  background: radial-gradient(circle at 50% 40%, #4a2a0c 0%, #241505 70%);
   cursor: pointer;
   transition: opacity 0.7s ease, visibility 0.7s ease;
   overflow: hidden;
@@ -1463,7 +1463,7 @@ footer {
   position: absolute;
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(227, 178, 60, 0.25) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 177, 0, 0.28) 0%, transparent 70%);
   border-radius: 50%;
   animation: introPulse 3s ease-in-out infinite;
 }
@@ -1480,10 +1480,11 @@ footer {
 }
 
 .intro-logo-symbol {
+  position: relative;
   width: 84px;
   height: 84px;
   margin: 0 auto 1.5rem auto;
-  border: 3px solid #E3B23C;
+  border: 3px solid #FFB100;
   border-radius: 18px;
   display: flex;
   align-items: center;
@@ -1491,10 +1492,24 @@ footer {
   transform: rotate(45deg);
 }
 
+.intro-logo-symbol::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 26px;
+  border: 1px dashed rgba(255, 177, 0, 0.4);
+  animation: introRingSpin 6s linear infinite;
+}
+
+@keyframes introRingSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .intro-logo-symbol i {
   transform: rotate(-45deg);
   font-size: 2rem;
-  color: #E3B23C;
+  color: #FFB100;
 }
 
 .intro-logo-text {
@@ -1503,16 +1518,16 @@ footer {
   font-weight: 800;
   letter-spacing: 0.2rem;
   text-transform: uppercase;
-  color: #F5F1E6;
+  color: #FFF3D1;
 }
 
 .intro-logo-text span {
-  color: #E3B23C;
+  color: #FFB100;
 }
 
 .intro-tagline {
   margin-top: 0.75rem;
-  color: #C7C9DA;
+  color: #E8C99A;
   font-size: 0.95rem;
   letter-spacing: 0.08rem;
 }
@@ -1529,7 +1544,7 @@ footer {
 .intro-loader-bar {
   width: 0%;
   height: 100%;
-  background: linear-gradient(90deg, #C9973A, #E3B23C);
+  background: linear-gradient(90deg, #FF7A29, #FFB100);
   animation: introLoad 2.4s ease-out forwards;
 }
 
@@ -1631,7 +1646,7 @@ footer {
 
 [data-theme="dark"] .auth-tab.active {
   background: var(--color-secondary);
-  color: #10121F;
+  color: #241505;
 }
 
 .auth-panel {
@@ -1930,4 +1945,186 @@ footer {
 .admin-empty-note {
   font-size: 0.85rem;
   color: var(--text-muted);
+}
+
+/* -------------------------------------------------------------
+ * FAVORITES (heart toggle button)
+ * ------------------------------------------------------------- */
+.fav-btn {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  z-index: 4;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(27, 31, 59, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: var(--transition-quick);
+  backdrop-filter: blur(4px);
+}
+
+.fav-btn:hover {
+  background: rgba(214, 91, 74, 0.85);
+  transform: scale(1.08);
+}
+
+.fav-btn.active {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.list-card-img {
+  position: relative;
+}
+
+.details-fav-btn {
+  position: static;
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  background: var(--bg-main);
+  color: var(--color-accent);
+  border: 1px solid var(--glass-border);
+}
+
+.details-fav-btn.active {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.list-card-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-secondary);
+  margin-bottom: 0.4rem;
+}
+
+/* -------------------------------------------------------------
+ * REVIEWS
+ * ------------------------------------------------------------- */
+.reviews-card {
+  max-width: 1200px;
+  margin: 2.5rem auto 0 auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 2.5rem;
+  box-shadow: 0 15px 45px var(--glass-shadow);
+}
+
+.reviews-header h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.75rem;
+  color: var(--text-primary);
+}
+
+.reviews-header h3 i {
+  color: var(--color-secondary);
+}
+
+.reviews-avg {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+
+.reviews-avg i {
+  color: var(--color-secondary);
+}
+
+.review-form {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.star-picker {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  color: var(--color-secondary);
+}
+
+.star-pick {
+  cursor: pointer;
+  transition: var(--transition-quick);
+}
+
+.star-pick:hover {
+  transform: scale(1.15);
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.review-item {
+  padding: 1.25rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+}
+
+.review-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.review-item-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.review-item-name i {
+  color: var(--color-secondary);
+}
+
+.review-item-stars {
+  color: var(--color-secondary);
+  font-size: 0.85rem;
+}
+
+.review-item-text {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 0.6rem;
+}
+
+.review-item-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.review-delete-btn {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
 }
