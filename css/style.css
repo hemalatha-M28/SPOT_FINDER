@@ -357,7 +357,9 @@ header.sticky {
 .gradient-text {
   background: linear-gradient(135deg, #2A9D8F, #1F7A8C, #EAE2B7);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
   display: inline-block;
 }
 
@@ -842,7 +844,45 @@ section {
   margin: 0 auto 5rem auto;
 }
 
+.choice-card {
+  position: relative;
+  height: 320px;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 30px var(--glass-shadow);
+  cursor: pointer;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s, box-shadow 0.5s;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 2.5rem 2rem;
+}
 
+.choice-card-bg {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-size: cover;
+  background-position: center;
+  z-index: 1;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.choice-card:hover .choice-card-bg {
+  transform: scale(1.06);
+}
+
+.choice-card-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(to bottom, rgba(10,30,35,0.1) 0%, rgba(10,30,35,0.75) 100%);
+  z-index: 2;
+}
+
+.choice-card-content {
+  position: relative;
+  z-index: 3;
+}
 
 .choice-card:hover {
   transform: translateY(-8px);
@@ -962,6 +1002,7 @@ section {
   margin-bottom: 1.75rem;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
