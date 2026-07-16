@@ -181,6 +181,56 @@ const SpotFinderAuth = (() => {
     }
   };
 
+  // ---- GOOGLE SIGN-IN / SIGN-UP ----
+  const loginWithGoogle = async () => {
+    if (!window.sfAuth) return { success: false, message: 'Service unavailable. Please refresh.' };
+
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
+
+      const result = await window.sfAuth.signInWithPopup(provider);
+      const user = result.user;
+
+      // Check if a Firestore profile already exists for this Google user
+      const docRef = usersCol().doc(user.uid);
+      const doc = await docRef.get();
+
+      if (!doc.exists) {
+        // First Google login — auto-create a profile
+        const baseUsername = (user.email || user.displayName || 'user')
+          .split('@')[0]
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '');
+        const username = (baseUsername || 'user') + '_' + user.uid.slice(0, 5);
+
+        await docRef.set({
+          name: user.displayName || 'Google User',
+          username,
+          role: 'user',
+          photoURL: user.photoURL || null,
+          email: user.email || null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        const newDoc = await docRef.get();
+        setSession({ ...newDoc.data() });
+      } else {
+        // Existing user — restore session from Firestore profile
+        setSession({ ...doc.data() });
+      }
+
+      return { success: true };
+    } catch (e) {
+      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+        return { success: false, message: '' }; // User dismissed — show no error
+      }
+      console.error('[SpotFinder] Google sign-in error:', e);
+      return { success: false, message: 'Google sign-in failed. Please try again.' };
+    }
+  };
+
   // ------------------------------------------------------------------
   // ADMIN ACCOUNTS (stored in Firestore users collection, role:'admin')
   // ------------------------------------------------------------------
@@ -454,6 +504,17 @@ const SpotFinderAuth = (() => {
     return favs.some(f => f.areaId === areaId && f.category === category && f.itemId === itemId);
   };
 
+  const getLikeCount = (areaId, category, itemId) => {
+    let count = 0;
+    Object.values(_cachedFavs).forEach(items => {
+      if (Array.isArray(items)) {
+        const found = items.some(f => f.areaId === areaId && f.category === category && f.itemId === itemId);
+        if (found) count++;
+      }
+    });
+    return count;
+  };
+
   const toggleFavorite = async (areaId, category, itemId) => {
     const session = getSession();
     if (!session) return { success: false, message: 'Login required.' };
@@ -539,6 +600,7 @@ const SpotFinderAuth = (() => {
     // Users
     registerUser,
     loginUser,
+    loginWithGoogle,
     // Admins
     getAdmins,
     loginAdmin,
@@ -561,7 +623,8 @@ const SpotFinderAuth = (() => {
     // Favorites
     getFavorites,
     isFavorite,
-    toggleFavorite
+    toggleFavorite,
+    getLikeCount
   };
 })();
 

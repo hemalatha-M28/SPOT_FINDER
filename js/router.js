@@ -226,6 +226,11 @@ class SpotFinderRouter {
               <div class="auth-error" id="user-login-error"></div>
               <button type="submit" class="action-btn-primary auth-submit-btn">Log In</button>
             </form>
+            <div class="auth-divider"><span>or</span></div>
+            <button class="google-signin-btn" id="google-signin-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Continue with Google
+            </button>
             <p class="auth-switch">New here? <a href="#" id="show-register">Create a user account</a></p>
           </div>
 
@@ -239,6 +244,11 @@ class SpotFinderRouter {
               <div class="auth-success" id="user-register-success"></div>
               <button type="submit" class="action-btn-primary auth-submit-btn">Create Account</button>
             </form>
+            <div class="auth-divider"><span>or</span></div>
+            <button class="google-signin-btn" id="google-register-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Sign up with Google
+            </button>
             <p class="auth-switch">Already registered? <a href="#" id="show-login">Back to login</a></p>
           </div>
 
@@ -446,7 +456,43 @@ class SpotFinderRouter {
         errorBox.textContent = result.message;
       }
     });
+
+    // ---- GOOGLE SIGN-IN HANDLERS ----
+    const G_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`;
+
+    const handleGoogleAuth = async (errorElementId) => {
+      const result = await window.SpotFinderAuth.loginWithGoogle();
+      if (result.success) {
+        window.location.hash = '#/';
+      } else if (result.message) {
+        const errorBox = document.getElementById(errorElementId);
+        if (errorBox) errorBox.textContent = result.message;
+      }
+    };
+
+    const googleSignInBtn = document.getElementById('google-signin-btn');
+    if (googleSignInBtn) {
+      googleSignInBtn.addEventListener('click', async () => {
+        googleSignInBtn.disabled = true;
+        googleSignInBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connecting...';
+        await handleGoogleAuth('user-login-error');
+        googleSignInBtn.disabled = false;
+        googleSignInBtn.innerHTML = G_ICON + ' Continue with Google';
+      });
+    }
+
+    const googleRegisterBtn = document.getElementById('google-register-btn');
+    if (googleRegisterBtn) {
+      googleRegisterBtn.addEventListener('click', async () => {
+        googleRegisterBtn.disabled = true;
+        googleRegisterBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connecting...';
+        await handleGoogleAuth('user-register-error');
+        googleRegisterBtn.disabled = false;
+        googleRegisterBtn.innerHTML = G_ICON + ' Sign up with Google';
+      });
+    }
   }
+
 
   // -----------------------------------------------------------
   // ADMIN: DASHBOARD
@@ -535,47 +581,144 @@ class SpotFinderRouter {
 
               <!-- New Place fields (shown when "+ Add a New Place" selected) -->
               <div id="new-place-fields" class="admin-subfields">
-                <input type="text" id="new-place-name" placeholder="Place / Area Name (e.g. Peelamedu)">
-                <input type="text" id="new-place-tagline" placeholder="Tagline (e.g. The Tech Hub of Kovai)">
+                <div class="form-grid-2">
+                  <input type="text" id="new-place-name" placeholder="Place / Area Name (e.g. Peelamedu)">
+                  <input type="text" id="new-place-tagline" placeholder="Tagline (e.g. The Tech Hub of Kovai)">
+                </div>
                 <textarea id="new-place-desc" placeholder="Short description of this area" rows="2"></textarea>
-                <label class="admin-label">Banner Image</label>
-                <input type="file" id="new-place-image-file" accept="image/*">
-                <input type="text" id="new-place-image-url" placeholder="...or paste a banner image URL">
+                <div class="form-grid-2">
+                  <div class="file-upload-wrapper">
+                    <label class="admin-label">Banner Image Upload</label>
+                    <input type="file" id="new-place-image-file" accept="image/*">
+                  </div>
+                  <div class="file-upload-wrapper">
+                    <label class="admin-label">or Image URL</label>
+                    <input type="text" id="new-place-image-url" placeholder="Paste banner image URL">
+                  </div>
+                </div>
               </div>
 
-              <label class="admin-label">Listing Type</label>
-              <select id="listing-category-select" class="admin-select">
-                <option value="spots">Tourist Spot</option>
-                <option value="restaurants">Restaurant / Hotel</option>
-              </select>
-
-              <input type="text" id="listing-name" placeholder="Name" required>
+              <div class="form-grid-2">
+                <div>
+                  <label class="admin-label">Listing Type</label>
+                  <select id="listing-category-select" class="admin-select">
+                    <option value="spots">Tourist Spot</option>
+                    <option value="restaurants">Restaurant / Hotel</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="admin-label">Business / Spot Name</label>
+                  <input type="text" id="listing-name" placeholder="Name" required style="margin-top: 4px;">
+                </div>
+              </div>
 
               <!-- Spot-only fields -->
               <div id="spot-fields" class="admin-subfields">
                 <textarea id="spot-desc" placeholder="Description" rows="2"></textarea>
-                <input type="text" id="spot-location" placeholder="Location / Address">
-                <input type="text" id="spot-entryfee" placeholder="Entry Fee (e.g. Free, ₹20)">
-                <input type="text" id="spot-timings" placeholder="Timings (e.g. 10:00 AM - 6:00 PM)">
-                <input type="text" id="spot-besttime" placeholder="Best Time to Visit">
+                <div class="form-grid-2">
+                  <input type="text" id="spot-location" placeholder="Location / Address">
+                  <input type="text" id="spot-entryfee" placeholder="Entry Fee (e.g. Free, ₹20)">
+                </div>
+                
+                <div class="form-grid-2">
+                  <div>
+                    <label class="admin-label">Operational Days</label>
+                    <select id="spot-days-select" class="admin-select">
+                      <option value="Everyday">Everyday</option>
+                      <option value="Weekdays (Mon-Fri)">Weekdays (Mon-Fri)</option>
+                      <option value="Weekends (Sat-Sun)">Weekends (Sat-Sun)</option>
+                      <option value="Mon - Sat">Mon - Sat</option>
+                      <option value="custom">Custom Days Selection...</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="admin-label">Specific Date (Optional)</label>
+                    <input type="date" id="spot-date" class="admin-input-date-time">
+                  </div>
+                </div>
+
+                <div id="spot-custom-days-wrapper" style="display:none; gap:0.4rem; justify-content:space-between; margin-bottom:1rem; margin-top: 0.5rem; flex-wrap: wrap; width: 100%;">
+                  ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => `
+                    <label class="day-checkbox-label">
+                      <input type="checkbox" name="spot-custom-days" value="${day}">
+                      <span>${day}</span>
+                    </label>
+                  `).join('')}
+                </div>
+
+                <div class="form-grid-2">
+                  <div>
+                    <label class="admin-label">Timings (Clock Picker - Start & End)</label>
+                    <div style="display:flex; gap:0.5rem; align-items:center; width:100%;">
+                      <input type="time" id="spot-time-start" class="admin-input-date-time" style="flex:1;">
+                      <span style="color:var(--text-muted);">to</span>
+                      <input type="time" id="spot-time-end" class="admin-input-date-time" style="flex:1;">
+                    </div>
+                  </div>
+                  <div>
+                    <label class="admin-label">Best Time to Visit</label>
+                    <input type="text" id="spot-besttime" placeholder="Best Time to Visit (e.g. Evenings)" style="margin-top: 4px;">
+                  </div>
+                </div>
               </div>
 
               <!-- Restaurant-only fields -->
               <div id="restaurant-fields" class="admin-subfields" style="display:none;">
-                <input type="text" id="rest-cuisine" placeholder="Cuisine (e.g. South Indian)">
-                <input type="text" id="rest-price" placeholder="Price Scale (e.g. ₹₹ Moderate)">
-                <input type="text" id="rest-rating" placeholder="Rating (e.g. 4.5)">
-                <input type="text" id="rest-reviews" placeholder="Number of Reviews (e.g. 1,200)">
-                <input type="text" id="rest-location" placeholder="Address">
-                <input type="text" id="rest-hours" placeholder="Opening Hours">
-                <input type="text" id="rest-contact" placeholder="Contact Number">
+                <div class="form-grid-2">
+                  <input type="text" id="rest-cuisine" placeholder="Cuisine (e.g. South Indian)">
+                  <input type="text" id="rest-price" placeholder="Price Scale (e.g. ₹₹ Moderate)">
+                </div>
+                <div class="form-grid-2">
+                  <input type="text" id="rest-location" placeholder="Address">
+                  <input type="text" id="rest-contact" placeholder="Contact Number">
+                </div>
+
+                <div class="form-grid-2">
+                  <div>
+                    <label class="admin-label">Operational Days</label>
+                    <select id="rest-days-select" class="admin-select">
+                      <option value="Everyday">Everyday</option>
+                      <option value="Weekdays (Mon-Fri)">Weekdays (Mon-Fri)</option>
+                      <option value="Weekends (Sat-Sun)">Weekends (Sat-Sun)</option>
+                      <option value="Mon - Sat">Mon - Sat</option>
+                      <option value="custom">Custom Days Selection...</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="admin-label">Specific Date (Optional)</label>
+                    <input type="date" id="rest-date" class="admin-input-date-time">
+                  </div>
+                </div>
+
+                <div id="rest-custom-days-wrapper" style="display:none; gap:0.4rem; justify-content:space-between; margin-bottom:1rem; margin-top: 0.5rem; flex-wrap: wrap; width: 100%;">
+                  ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => `
+                    <label class="day-checkbox-label">
+                      <input type="checkbox" name="rest-custom-days" value="${day}">
+                      <span>${day}</span>
+                    </label>
+                  `).join('')}
+                </div>
+
+                <label class="admin-label">Opening Hours (Clock Picker - Start & End)</label>
+                <div style="display:flex; gap:0.5rem; align-items:center; width:100%;">
+                  <input type="time" id="rest-time-start" class="admin-input-date-time" style="flex:1;">
+                  <span style="color:var(--text-muted);">to</span>
+                  <input type="time" id="rest-time-end" class="admin-input-date-time" style="flex:1;">
+                </div>
               </div>
 
               <input type="text" id="listing-mapurl" placeholder="Google Maps URL (optional)">
 
-              <label class="admin-label">Photo</label>
-              <input type="file" id="listing-image-file" accept="image/*">
-              <input type="text" id="listing-image-url" placeholder="...or paste an image URL">
+              <div class="form-grid-2">
+                <div class="file-upload-wrapper">
+                  <label class="admin-label">Photo Upload</label>
+                  <input type="file" id="listing-image-file" accept="image/*">
+                </div>
+                <div class="file-upload-wrapper">
+                  <label class="admin-label">or Image URL</label>
+                  <input type="text" id="listing-image-url" placeholder="...or paste an image URL" style="margin-top: 4px;">
+                </div>
+              </div>
 
               <div class="auth-error" id="admin-listing-error"></div>
               <div class="auth-success" id="admin-listing-success"></div>
@@ -633,6 +776,23 @@ class SpotFinderRouter {
     };
     toggleCategoryFields();
     categorySelect.addEventListener('change', toggleCategoryFields);
+
+    // Toggle custom days input grids
+    const spotDaysSelect = document.getElementById('spot-days-select');
+    const spotCustomDaysWrapper = document.getElementById('spot-custom-days-wrapper');
+    if (spotDaysSelect && spotCustomDaysWrapper) {
+      spotDaysSelect.addEventListener('change', () => {
+        spotCustomDaysWrapper.style.display = spotDaysSelect.value === 'custom' ? 'flex' : 'none';
+      });
+    }
+
+    const restDaysSelect = document.getElementById('rest-days-select');
+    const restCustomDaysWrapper = document.getElementById('rest-custom-days-wrapper');
+    if (restDaysSelect && restCustomDaysWrapper) {
+      restDaysSelect.addEventListener('change', () => {
+        restCustomDaysWrapper.style.display = restDaysSelect.value === 'custom' ? 'flex' : 'none';
+      });
+    }
 
     // Helper: read a file input as a data URL (Promise)
     const readFileAsDataUrl = (fileInput) => {
@@ -704,29 +864,75 @@ class SpotFinderRouter {
       const mapUrl = document.getElementById('listing-mapurl').value.trim() || `https://maps.google.com/?q=${encodeURIComponent(name + ' Coimbatore')}`;
       const itemId = `${window.SpotFinderAuth.slugify(name)}-${Date.now()}`;
 
+      const formatTimeAMPM = (timeStr) => {
+        if (!timeStr) return '';
+        const [hours, minutes] = timeStr.split(':');
+        let h = parseInt(hours, 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12;
+        const m = minutes.padStart(2, '0');
+        return `${h.toString().padStart(2, '0')}:${m} ${ampm}`;
+      };
+
+      const formatTiming = (daysVal, customDaysName, dateVal, startVal, endVal, fallback) => {
+        let daysStr = '';
+        if (daysVal === 'custom') {
+          const checkedDays = Array.from(document.querySelectorAll(`input[name="${customDaysName}"]:checked`)).map(cb => cb.value);
+          daysStr = checkedDays.length > 0 ? checkedDays.join(', ') : 'Everyday';
+        } else {
+          daysStr = daysVal || 'Everyday';
+        }
+
+        let timePart = '';
+        if (startVal && endVal) {
+          timePart = `${formatTimeAMPM(startVal)} - ${formatTimeAMPM(endVal)}`;
+        } else {
+          timePart = fallback;
+        }
+
+        let finalStr = `${daysStr}: ${timePart}`;
+        if (dateVal) {
+          finalStr += ` (On ${dateVal})`;
+        }
+        return finalStr;
+      };
+
       let item;
       if (category === 'spots') {
+        const daysVal = document.getElementById('spot-days-select').value;
+        const dateVal = document.getElementById('spot-date').value;
+        const startVal = document.getElementById('spot-time-start').value;
+        const endVal = document.getElementById('spot-time-end').value;
+        const formattedTimings = formatTiming(daysVal, 'spot-custom-days', dateVal, startVal, endVal, '9:00 AM - 6:00 PM');
+
         item = {
           id: itemId,
           name,
           description: document.getElementById('spot-desc').value.trim() || 'A great spot to explore in Coimbatore.',
           location: document.getElementById('spot-location').value.trim() || 'Coimbatore',
           entryFee: document.getElementById('spot-entryfee').value.trim() || 'Free',
-          timings: document.getElementById('spot-timings').value.trim() || '9:00 AM - 6:00 PM',
+          timings: formattedTimings,
           bestTime: document.getElementById('spot-besttime').value.trim() || 'Anytime',
           mapUrl,
           image
         };
       } else {
+        const daysVal = document.getElementById('rest-days-select').value;
+        const dateVal = document.getElementById('rest-date').value;
+        const startVal = document.getElementById('rest-time-start').value;
+        const endVal = document.getElementById('rest-time-end').value;
+        const formattedHours = formatTiming(daysVal, 'rest-custom-days', dateVal, startVal, endVal, '9:00 AM - 10:00 PM');
+
         item = {
           id: itemId,
           name,
-          rating: document.getElementById('rest-rating').value.trim() || '4.0',
-          reviews: document.getElementById('rest-reviews').value.trim() || '0',
+          rating: '',
+          reviews: '0',
           cuisine: document.getElementById('rest-cuisine').value.trim() || 'Multi-Cuisine',
           price: document.getElementById('rest-price').value.trim() || '₹₹ (Moderate)',
           location: document.getElementById('rest-location').value.trim() || 'Coimbatore',
-          hours: document.getElementById('rest-hours').value.trim() || '9:00 AM - 10:00 PM',
+          hours: formattedHours,
           contact: document.getElementById('rest-contact').value.trim() || 'N/A',
           mapUrl,
           image
@@ -881,27 +1087,109 @@ class SpotFinderRouter {
 
               <div id="partner-spot-fields" class="admin-subfields" style="display:none;">
                 <textarea id="partner-spot-desc" placeholder="Description" rows="2"></textarea>
-                <input type="text" id="partner-spot-location" placeholder="Location / Address">
-                <input type="text" id="partner-spot-entryfee" placeholder="Entry Fee (e.g. Free, ₹20)">
-                <input type="text" id="partner-spot-timings" placeholder="Timings">
-                <input type="text" id="partner-spot-besttime" placeholder="Best Time to Visit">
+                <div class="form-grid-2">
+                  <input type="text" id="partner-spot-location" placeholder="Location / Address">
+                  <input type="text" id="partner-spot-entryfee" placeholder="Entry Fee (e.g. Free, ₹20)">
+                </div>
+                
+                <div class="form-grid-2">
+                  <div>
+                    <label class="admin-label">Operational Days</label>
+                    <select id="partner-spot-days-select" class="admin-select">
+                      <option value="Everyday">Everyday</option>
+                      <option value="Weekdays (Mon-Fri)">Weekdays (Mon-Fri)</option>
+                      <option value="Weekends (Sat-Sun)">Weekends (Sat-Sun)</option>
+                      <option value="Mon - Sat">Mon - Sat</option>
+                      <option value="custom">Custom Days Selection...</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="admin-label">Specific Date (Optional)</label>
+                    <input type="date" id="partner-spot-date" class="admin-input-date-time">
+                  </div>
+                </div>
+
+                <div id="partner-spot-custom-days-wrapper" style="display:none; gap:0.4rem; justify-content:space-between; margin-bottom:1rem; margin-top: 0.5rem; flex-wrap: wrap; width: 100%;">
+                  ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => `
+                    <label class="day-checkbox-label">
+                      <input type="checkbox" name="partner-spot-custom-days" value="${day}">
+                      <span>${day}</span>
+                    </label>
+                  `).join('')}
+                </div>
+
+                <div class="form-grid-2">
+                  <div>
+                    <label class="admin-label">Timings (Clock Picker - Start & End)</label>
+                    <div style="display:flex; gap:0.5rem; align-items:center; width:100%;">
+                      <input type="time" id="partner-spot-time-start" class="admin-input-date-time" style="flex:1;">
+                      <span style="color:var(--text-muted);">to</span>
+                      <input type="time" id="partner-spot-time-end" class="admin-input-date-time" style="flex:1;">
+                    </div>
+                  </div>
+                  <div>
+                    <label class="admin-label">Best Time to Visit</label>
+                    <input type="text" id="partner-spot-besttime" placeholder="Best Time to Visit" style="margin-top: 4px;">
+                  </div>
+                </div>
               </div>
 
               <div id="partner-restaurant-fields" class="admin-subfields">
-                <input type="text" id="partner-rest-cuisine" placeholder="Cuisine (e.g. South Indian)">
-                <input type="text" id="partner-rest-price" placeholder="Price Scale (e.g. ₹₹ Moderate)">
-                <input type="text" id="partner-rest-rating" placeholder="Rating (e.g. 4.5)">
-                <input type="text" id="partner-rest-reviews" placeholder="Number of Reviews">
-                <input type="text" id="partner-rest-location" placeholder="Address">
-                <input type="text" id="partner-rest-hours" placeholder="Opening Hours">
-                <input type="text" id="partner-rest-contact" placeholder="Contact Number">
+                <div class="form-grid-2">
+                  <input type="text" id="partner-rest-cuisine" placeholder="Cuisine (e.g. South Indian)">
+                  <input type="text" id="partner-rest-price" placeholder="Price Scale (e.g. ₹₹ Moderate)">
+                </div>
+                <div class="form-grid-2">
+                  <input type="text" id="partner-rest-location" placeholder="Address">
+                  <input type="text" id="partner-rest-contact" placeholder="Contact Number">
+                </div>
+
+                <div class="form-grid-2">
+                  <div>
+                    <label class="admin-label">Operational Days</label>
+                    <select id="partner-rest-days-select" class="admin-select">
+                      <option value="Everyday">Everyday</option>
+                      <option value="Weekdays (Mon-Fri)">Weekdays (Mon-Fri)</option>
+                      <option value="Weekends (Sat-Sun)">Weekends (Sat-Sun)</option>
+                      <option value="Mon - Sat">Mon - Sat</option>
+                      <option value="custom">Custom Days Selection...</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="admin-label">Specific Date (Optional)</label>
+                    <input type="date" id="partner-rest-date" class="admin-input-date-time">
+                  </div>
+                </div>
+
+                <div id="partner-rest-custom-days-wrapper" style="display:none; gap:0.4rem; justify-content:space-between; margin-bottom:1rem; margin-top: 0.5rem; flex-wrap: wrap; width: 100%;">
+                  ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => `
+                    <label class="day-checkbox-label">
+                      <input type="checkbox" name="partner-rest-custom-days" value="${day}">
+                      <span>${day}</span>
+                    </label>
+                  `).join('')}
+                </div>
+
+                <label class="admin-label">Opening Hours (Clock Picker - Start & End)</label>
+                <div style="display:flex; gap:0.5rem; align-items:center; width:100%;">
+                  <input type="time" id="partner-rest-time-start" class="admin-input-date-time" style="flex:1;">
+                  <span style="color:var(--text-muted);">to</span>
+                  <input type="time" id="partner-rest-time-end" class="admin-input-date-time" style="flex:1;">
+                </div>
               </div>
 
               <input type="text" id="partner-listing-mapurl" placeholder="Google Maps URL (optional)">
 
-              <label class="admin-label">Photo</label>
-              <input type="file" id="partner-listing-image-file" accept="image/*">
-              <input type="text" id="partner-listing-image-url" placeholder="...or paste an image URL">
+              <div class="form-grid-2">
+                <div class="file-upload-wrapper">
+                  <label class="admin-label">Photo Upload</label>
+                  <input type="file" id="partner-listing-image-file" accept="image/*">
+                </div>
+                <div class="file-upload-wrapper">
+                  <label class="admin-label">or Image URL</label>
+                  <input type="text" id="partner-listing-image-url" placeholder="...or paste an image URL" style="margin-top: 4px;">
+                </div>
+              </div>
 
               <div class="auth-error" id="partner-listing-error"></div>
               <div class="auth-success" id="partner-listing-success"></div>
@@ -947,6 +1235,22 @@ class SpotFinderRouter {
     toggleCategoryFields();
     categorySelect.addEventListener('change', toggleCategoryFields);
 
+    const partnerSpotDaysSelect = document.getElementById('partner-spot-days-select');
+    const partnerSpotCustomDaysWrapper = document.getElementById('partner-spot-custom-days-wrapper');
+    if (partnerSpotDaysSelect && partnerSpotCustomDaysWrapper) {
+      partnerSpotDaysSelect.addEventListener('change', () => {
+        partnerSpotCustomDaysWrapper.style.display = partnerSpotDaysSelect.value === 'custom' ? 'flex' : 'none';
+      });
+    }
+
+    const partnerRestDaysSelect = document.getElementById('partner-rest-days-select');
+    const partnerRestCustomDaysWrapper = document.getElementById('partner-rest-custom-days-wrapper');
+    if (partnerRestDaysSelect && partnerRestCustomDaysWrapper) {
+      partnerRestDaysSelect.addEventListener('change', () => {
+        partnerRestCustomDaysWrapper.style.display = partnerRestDaysSelect.value === 'custom' ? 'flex' : 'none';
+      });
+    }
+
     const readFileAsDataUrl = (fileInput) => {
       return new Promise((resolve) => {
         const file = fileInput.files[0];
@@ -991,29 +1295,75 @@ class SpotFinderRouter {
       const mapUrl = document.getElementById('partner-listing-mapurl').value.trim() || `https://maps.google.com/?q=${encodeURIComponent(name + ' Coimbatore')}`;
       const itemId = `${window.SpotFinderAuth.slugify(name)}-${Date.now()}`;
 
+      const formatTimeAMPM = (timeStr) => {
+        if (!timeStr) return '';
+        const [hours, minutes] = timeStr.split(':');
+        let h = parseInt(hours, 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12;
+        const m = minutes.padStart(2, '0');
+        return `${h.toString().padStart(2, '0')}:${m} ${ampm}`;
+      };
+
+      const formatTiming = (daysVal, customDaysName, dateVal, startVal, endVal, fallback) => {
+        let daysStr = '';
+        if (daysVal === 'custom') {
+          const checkedDays = Array.from(document.querySelectorAll(`input[name="${customDaysName}"]:checked`)).map(cb => cb.value);
+          daysStr = checkedDays.length > 0 ? checkedDays.join(', ') : 'Everyday';
+        } else {
+          daysStr = daysVal || 'Everyday';
+        }
+
+        let timePart = '';
+        if (startVal && endVal) {
+          timePart = `${formatTimeAMPM(startVal)} - ${formatTimeAMPM(endVal)}`;
+        } else {
+          timePart = fallback;
+        }
+
+        let finalStr = `${daysStr}: ${timePart}`;
+        if (dateVal) {
+          finalStr += ` (On ${dateVal})`;
+        }
+        return finalStr;
+      };
+
       let item;
       if (category === 'spots') {
+        const daysVal = document.getElementById('partner-spot-days-select').value;
+        const dateVal = document.getElementById('partner-spot-date').value;
+        const startVal = document.getElementById('partner-spot-time-start').value;
+        const endVal = document.getElementById('partner-spot-time-end').value;
+        const formattedTimings = formatTiming(daysVal, 'partner-spot-custom-days', dateVal, startVal, endVal, '9:00 AM - 6:00 PM');
+
         item = {
           id: itemId,
           name,
           description: document.getElementById('partner-spot-desc').value.trim() || 'A great spot to explore in Coimbatore.',
           location: document.getElementById('partner-spot-location').value.trim() || 'Coimbatore',
           entryFee: document.getElementById('partner-spot-entryfee').value.trim() || 'Free',
-          timings: document.getElementById('partner-spot-timings').value.trim() || '9:00 AM - 6:00 PM',
+          timings: formattedTimings,
           bestTime: document.getElementById('partner-spot-besttime').value.trim() || 'Anytime',
           mapUrl,
           image
         };
       } else {
+        const daysVal = document.getElementById('partner-rest-days-select').value;
+        const dateVal = document.getElementById('partner-rest-date').value;
+        const startVal = document.getElementById('partner-rest-time-start').value;
+        const endVal = document.getElementById('partner-rest-time-end').value;
+        const formattedHours = formatTiming(daysVal, 'partner-rest-custom-days', dateVal, startVal, endVal, '9:00 AM - 10:00 PM');
+
         item = {
           id: itemId,
           name,
-          rating: document.getElementById('partner-rest-rating').value.trim() || '4.0',
-          reviews: document.getElementById('partner-rest-reviews').value.trim() || '0',
+          rating: '',
+          reviews: '0',
           cuisine: document.getElementById('partner-rest-cuisine').value.trim() || 'Multi-Cuisine',
           price: document.getElementById('partner-rest-price').value.trim() || '₹₹ (Moderate)',
           location: document.getElementById('partner-rest-location').value.trim() || 'Coimbatore',
-          hours: document.getElementById('partner-rest-hours').value.trim() || '9:00 AM - 10:00 PM',
+          hours: formattedHours,
           contact: document.getElementById('partner-rest-contact').value.trim() || 'N/A',
           mapUrl,
           image
@@ -1264,17 +1614,27 @@ class SpotFinderRouter {
           ${items.map(item => {
             const avg = window.SpotFinderAuth.getAverageRating(area.id, category, item.id);
             const isFav = window.SpotFinderAuth.isFavorite(area.id, category, item.id);
+            const showRating = avg ? avg.average : (item.rating || '');
+            const showReviewsCount = avg ? avg.count : parseInt((item.reviews || '0').toString().replace(/,/g, ''), 10);
+            
+            const ratingMarkup = (showReviewsCount > 0)
+              ? `<span class="list-card-rating"><i class="fa-solid fa-star"></i> ${showRating} (${showReviewsCount.toLocaleString()} review${showReviewsCount === 1 ? '' : 's'})</span>`
+              : `<span class="list-card-rating"><i class="fa-solid fa-star-half-stroke"></i> No reviews yet</span>`;
+
             return `
             <div class="list-card">
               <div class="list-card-img" style="background-image: url('${item.image}');">
                 <span class="list-card-badge">${isSpots ? 'Sightseeing' : 'Gastronomy'}</span>
-                <button class="fav-btn ${isFav ? 'active' : ''}" data-area="${area.id}" data-category="${category}" data-id="${item.id}" title="Save to favorites">
-                  <i class="fa-solid fa-heart"></i>
-                </button>
+                <div class="fav-container">
+                  <button class="fav-btn ${isFav ? 'active' : ''}" data-area="${area.id}" data-category="${category}" data-id="${item.id}" title="Save to favorites">
+                    <i class="fa-solid fa-heart"></i>
+                  </button>
+                  <span class="fav-count">${window.SpotFinderAuth.getLikeCount(area.id, category, item.id)} likes</span>
+                </div>
               </div>
               <div class="list-card-body">
                 <h3 class="list-card-title">${item.name}</h3>
-                ${avg ? `<span class="list-card-rating"><i class="fa-solid fa-star"></i> ${avg.average} (${avg.count} review${avg.count === 1 ? '' : 's'})</span>` : ''}
+                ${ratingMarkup}
                 <p class="list-card-desc">${item.description || "Experience the best of Coimbatore culinary offerings or historical landscapes at this verified location."}</p>
                 <button class="list-card-btn" onclick="window.location.hash='#/area/${area.id}/details/${category}/${item.id}'">
                   View Details
@@ -1295,17 +1655,24 @@ class SpotFinderRouter {
     this.bindFavoriteButtons();
   }
 
-  // Shared helper: wires up every .fav-btn heart icon currently on screen
   bindFavoriteButtons() {
     document.querySelectorAll('.fav-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const result = window.SpotFinderAuth.toggleFavorite(btn.dataset.area, btn.dataset.category, btn.dataset.id);
+        const result = await window.SpotFinderAuth.toggleFavorite(btn.dataset.area, btn.dataset.category, btn.dataset.id);
         if (!result.success) {
           window.location.hash = '#/login';
           return;
         }
         btn.classList.toggle('active', result.added);
+        
+        // Find if there is a liked counter in the DOM structure (either as sibling or inside a parent container)
+        const parent = btn.parentElement;
+        const countSpan = parent ? parent.querySelector('.fav-count, .details-fav-count') : null;
+        if (countSpan) {
+          const currentCount = window.SpotFinderAuth.getLikeCount(btn.dataset.area, btn.dataset.category, btn.dataset.id);
+          countSpan.textContent = `${currentCount} like${currentCount === 1 ? '' : 's'}`;
+        }
       });
     });
   }
@@ -1335,6 +1702,11 @@ class SpotFinderRouter {
     }
 
     if (isSpot) {
+      const avg = window.SpotFinderAuth.getAverageRating(area.id, 'spots', data.id);
+      const ratingString = avg 
+        ? `${avg.average} (${avg.count} review${avg.count === 1 ? '' : 's'})` 
+        : `No reviews yet`;
+
       this.appView.innerHTML = `
         <div class="details-container">
           <div class="details-card">
@@ -1347,6 +1719,10 @@ class SpotFinderRouter {
               <p class="details-desc">${data.description}</p>
               
               <div class="details-specs">
+                <div class="spec-item">
+                  <i class="fa-solid fa-star" style="color: var(--color-secondary);"></i>
+                  <strong>Rating:</strong> <span>${ratingString}</span>
+                </div>
                 <div class="spec-item">
                   <i class="fa-solid fa-location-dot"></i>
                   <strong>Address:</strong> <span>${data.location}</span>
@@ -1369,9 +1745,12 @@ class SpotFinderRouter {
                 <button class="action-btn-primary" onclick="window.SpotFinderApp.viewMap('${data.mapUrl}')">
                   <i class="fa-solid fa-location-arrow"></i> Google Maps Directions
                 </button>
-                <button class="fav-btn details-fav-btn ${window.SpotFinderAuth.isFavorite(area.id, 'spots', data.id) ? 'active' : ''}" data-area="${area.id}" data-category="spots" data-id="${data.id}" title="Save to favorites">
-                  <i class="fa-solid fa-heart"></i>
-                </button>
+                <div class="details-fav-wrapper">
+                  <button class="fav-btn details-fav-btn ${window.SpotFinderAuth.isFavorite(area.id, 'spots', data.id) ? 'active' : ''}" data-area="${area.id}" data-category="spots" data-id="${data.id}" title="Save to favorites">
+                    <i class="fa-solid fa-heart"></i>
+                  </button>
+                  <span class="details-fav-count">${window.SpotFinderAuth.getLikeCount(area.id, 'spots', data.id)} likes</span>
+                </div>
                 <button class="action-btn-outline" onclick="window.location.hash='#/area/${area.id}/list/spots'">
                   Back to List
                 </button>
@@ -1384,6 +1763,13 @@ class SpotFinderRouter {
       this.bindFavoriteButtons();
       this.bindReviewEvents(area.id, 'spots', data.id);
     } else {
+      const avg = window.SpotFinderAuth.getAverageRating(area.id, 'restaurants', data.id);
+      const showRating = avg ? avg.average : (data.rating || '');
+      const showReviewsCount = avg ? avg.count : parseInt((data.reviews || '0').toString().replace(/,/g, ''), 10);
+      const ratingString = (showReviewsCount > 0)
+        ? `${showRating} (${showReviewsCount.toLocaleString()} Trust Reviews)`
+        : `No reviews yet`;
+
       this.appView.innerHTML = `
         <div class="details-container">
           <div class="details-card">
@@ -1398,7 +1784,7 @@ class SpotFinderRouter {
               <div class="details-specs">
                 <div class="spec-item">
                   <i class="fa-solid fa-star" style="color: var(--color-secondary);"></i>
-                  <strong>Rating:</strong> <span>${data.rating} (${data.reviews} Trust Reviews)</span>
+                  <strong>Rating:</strong> <span>${ratingString}</span>
                 </div>
                 <div class="spec-item">
                   <i class="fa-solid fa-bowl-food"></i>
@@ -1426,9 +1812,12 @@ class SpotFinderRouter {
                 <button class="action-btn-primary" onclick="window.SpotFinderApp.viewMap('${data.mapUrl}')">
                   <i class="fa-solid fa-location-arrow"></i> Google Maps Directions
                 </button>
-                <button class="fav-btn details-fav-btn ${window.SpotFinderAuth.isFavorite(area.id, 'restaurants', data.id) ? 'active' : ''}" data-area="${area.id}" data-category="restaurants" data-id="${data.id}" title="Save to favorites">
-                  <i class="fa-solid fa-heart"></i>
-                </button>
+                <div class="details-fav-wrapper">
+                  <button class="fav-btn details-fav-btn ${window.SpotFinderAuth.isFavorite(area.id, 'restaurants', data.id) ? 'active' : ''}" data-area="${area.id}" data-category="restaurants" data-id="${data.id}" title="Save to favorites">
+                    <i class="fa-solid fa-heart"></i>
+                  </button>
+                  <span class="details-fav-count">${window.SpotFinderAuth.getLikeCount(area.id, 'restaurants', data.id)} likes</span>
+                </div>
                 <button class="action-btn-outline" onclick="window.location.hash='#/area/${area.id}/list/restaurants'">
                   Back to List
                 </button>
@@ -1565,9 +1954,12 @@ class SpotFinderRouter {
             <div class="list-card">
               <div class="list-card-img" style="background-image: url('${item.image}');">
                 <span class="list-card-badge">${item.category === 'spots' ? 'Sightseeing' : 'Gastronomy'}</span>
-                <button class="fav-btn active" data-area="${item.areaId}" data-category="${item.category}" data-id="${item.id}" title="Remove from favorites">
-                  <i class="fa-solid fa-heart"></i>
-                </button>
+                <div class="fav-container">
+                  <button class="fav-btn active" data-area="${item.areaId}" data-category="${item.category}" data-id="${item.id}" title="Remove from favorites">
+                    <i class="fa-solid fa-heart"></i>
+                  </button>
+                  <span class="fav-count">${window.SpotFinderAuth.getLikeCount(item.areaId, item.category, item.id)} likes</span>
+                </div>
               </div>
               <div class="list-card-body">
                 <h3 class="list-card-title">${item.name}</h3>
