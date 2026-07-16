@@ -220,7 +220,7 @@ class SpotFinderRouter {
             <form id="user-register-form" class="auth-form">
               <input type="text" id="reg-name" placeholder="Full Name" required>
               <input type="text" id="reg-username" placeholder="Choose a username" required>
-              <input type="password" id="reg-password" placeholder="Choose a password" required minlength="4">
+              <input type="password" id="reg-password" placeholder="Choose a password" required minlength="6">
               <div class="auth-error" id="user-register-error"></div>
               <div class="auth-success" id="user-register-success"></div>
               <button type="submit" class="action-btn-primary auth-submit-btn">Create Account</button>
@@ -349,12 +349,22 @@ class SpotFinderRouter {
       document.getElementById('panel-user-login').classList.add('active');
     });
 
-    document.getElementById('user-login-form').addEventListener('submit', (e) => {
+    document.getElementById('user-login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const username = document.getElementById('user-login-username').value.trim();
       const password = document.getElementById('user-login-password').value;
-      const result = window.SpotFinderAuth.loginUser(username, password);
       const errorBox = document.getElementById('user-login-error');
+      const btn = e.target.querySelector('button[type="submit"]');
+
+      // Show loading state
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in...';
+
+      const result = await window.SpotFinderAuth.loginUser(username, password);
+
+      btn.disabled = false;
+      btn.innerHTML = 'Log In';
+
       if (result.success) {
         errorBox.textContent = '';
         window.location.hash = '#/';
@@ -363,14 +373,24 @@ class SpotFinderRouter {
       }
     });
 
-    document.getElementById('user-register-form').addEventListener('submit', (e) => {
+    document.getElementById('user-register-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('reg-name').value.trim();
       const username = document.getElementById('reg-username').value.trim();
       const password = document.getElementById('reg-password').value;
-      const result = window.SpotFinderAuth.registerUser(name, username, password);
       const errorBox = document.getElementById('user-register-error');
       const successBox = document.getElementById('user-register-success');
+      const btn = e.target.querySelector('button[type="submit"]');
+
+      // Show loading state
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating account...';
+
+      const result = await window.SpotFinderAuth.registerUser(name, username, password);
+
+      btn.disabled = false;
+      btn.innerHTML = 'Create Account';
+
       if (result.success) {
         errorBox.textContent = '';
         successBox.textContent = 'Account created! You can log in now.';

@@ -65,7 +65,13 @@ const SpotFinderAuth = (() => {
     return s && s.role === 'partner';
   };
 
-  const logout = () => clearSession();
+  const logout = () => {
+    const session = getSession();
+    clearSession(); // Clear localStorage session immediately (sync)
+    if (session && session.role === 'user' && window.sfAuth) {
+      window.sfAuth.signOut().catch(() => {}); // Firebase sign-out (fire & forget)
+    }
+  };
 
   // ------------------------------------------------------------------
   // USER ACCOUNTS
@@ -73,26 +79,50 @@ const SpotFinderAuth = (() => {
   const getUsers = () => load(STORAGE_KEYS.USERS, []);
   const saveUsers = (users) => save(STORAGE_KEYS.USERS, users);
 
-  const registerUser = (name, username, password) => {
+  // ---- FIREBASE-BACKED USER REGISTRATION ----
+  const registerUser = async (name, username, password) => {
     if (!name || !username || !password) return { success: false, message: 'All fields are required.' };
-    if (password.length < 4) return { success: false, message: 'Password must be at least 4 characters.' };
+    if (password.length < 6) return { success: false, message: 'Password must be at least 6 characters.' };
+    if (!window.sfAuth || !window.sfDb) return { success: false, message: 'Service unavailable. Please refresh.' };
 
-    const users = getUsers();
-    if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-      return { success: false, message: 'Username is already taken.' };
+    const email = `${username.toLowerCase()}@spotfinder.app`;
+    try {
+      const cred = await window.sfAuth.createUserWithEmailAndPassword(email, password);
+      // Save full profile to Firestore
+      await window.sfDb.collection('users').doc(cred.user.uid).set({
+        name,
+        username: username.toLowerCase(),
+        role: 'user'
+      });
+      return { success: true };
+    } catch (e) {
+      if (e.code === 'auth/email-already-in-use') {
+        return { success: false, message: 'Username is already taken.' };
+      }
+      if (e.code === 'auth/weak-password') {
+        return { success: false, message: 'Password must be at least 6 characters.' };
+      }
+      return { success: false, message: 'Registration failed. Please try again.' };
     }
-
-    users.push({ name, username: username.toLowerCase(), password, role: 'user' });
-    saveUsers(users);
-    return { success: true };
   };
 
-  const loginUser = (username, password) => {
-    const users = getUsers();
-    const user = users.find(u => u.username === username.toLowerCase() && u.password === password);
-    if (!user) return { success: false, message: 'Invalid username or password.' };
-    setSession({ name: user.name, username: user.username, role: 'user' });
-    return { success: true };
+  // ---- FIREBASE-BACKED USER LOGIN ----
+  const loginUser = async (username, password) => {
+    if (!window.sfAuth || !window.sfDb) return { success: false, message: 'Service unavailable. Please refresh.' };
+
+    const email = `${username.toLowerCase()}@spotfinder.app`;
+    try {
+      const cred = await window.sfAuth.signInWithEmailAndPassword(email, password);
+      // Fetch profile from Firestore and cache in localStorage session
+      const doc = await window.sfDb.collection('users').doc(cred.user.uid).get();
+      if (doc.exists) {
+        const profile = doc.data();
+        setSession({ name: profile.name, username: profile.username, role: 'user' });
+      }
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: 'Invalid username or password.' };
+    }
   };
 
   // ------------------------------------------------------------------
@@ -340,6 +370,40 @@ const SpotFinderAuth = (() => {
   // ------------------------------------------------------------------
   const init = () => {
     syncDataToMemory();
+
+    // ---- FIREBASE AUTH STATE LISTENER ----
+    // Restores session automatically after a page refresh if Firebase still has the user logged in
+    if (window.sfAuth) {
+      window.sfAuth.onAuthStateChanged(async (firebaseUser) => {
+        if (firebaseUser) {
+          const currentSession = getSession();
+          // Only restore if there's no active user session in localStorage
+          if (!currentSession || currentSession.role !== 'user') {
+            try {
+              const doc = await window.sfDb.collection('users').doc(firebaseUser.uid).get();
+              if (doc.exists) {
+                setSession(doc.data());
+                // Redirect away from login page or re-run the router
+                if (window.location.hash === '#/login' || !window.location.hash || window.location.hash === '#') {
+                  window.location.hash = '#/';
+                } else if (window.router) {
+                  window.router.handleRoute();
+                }
+              }
+            } catch (e) {
+              console.warn('[SpotFinder] Could not restore Firebase session:', e);
+            }
+          }
+        } else {
+          // Firebase signed out — also clear localStorage user session
+          const currentSession = getSession();
+          if (currentSession && currentSession.role === 'user') {
+            clearSession();
+            if (window.router) window.router.handleRoute();
+          }
+        }
+      });
+    }
   };
 
   // Run init immediately

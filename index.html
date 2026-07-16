@@ -101,11 +101,17 @@
     </button>
   </div>
 
+  <!-- Firebase Compat SDKs (must load before firebase-config.js and auth.js) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
   <!-- GSAP transition support -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
   <!-- Core scripts -->
   <script src="js/data.js"></script>
+  <script src="js/firebase-config.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/router.js"></script>
   <script src="js/animations.js"></script>
