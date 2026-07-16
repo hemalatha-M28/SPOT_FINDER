@@ -54,15 +54,29 @@ class SpotFinderRouter {
     // Reset scroll position
     window.scrollTo({ top: 0, behavior: 'instant' });
 
+    // -----------------------------------------------------------
+    // LOAD ALL DATA FROM FIRESTORE before rendering
+    // -----------------------------------------------------------
+    if (hash !== '#/login' && window.SpotFinderAuth) {
+      try {
+        await window.SpotFinderAuth.loadAllData();
+        await window.SpotFinderAuth.loadReviews();
+        await window.SpotFinderAuth.loadFavorites();
+        await window.SpotFinderAuth.refreshAdminsCache();
+      } catch (e) {
+        console.warn('[SpotFinder] Data load error:', e);
+      }
+    }
+
     // Routing conditions
     if (hash === '#/login') {
       this.renderLogin();
     } else if (hash === '#/admin') {
-      this.renderAdminDashboard();
+      await this.renderAdminDashboard();
     } else if (hash === '#/admin/manage') {
       this.renderAdminManage();
     } else if (hash === '#/admin/accounts') {
-      this.renderAdminAccounts();
+      await this.renderAdminAccounts();
     } else if (hash === '#/partner') {
       this.renderPartnerDashboard();
     } else if (hash === '#/favorites') {
@@ -301,12 +315,17 @@ class SpotFinderRouter {
       document.getElementById('panel-partner-login').classList.add('active');
     });
 
-    document.getElementById('partner-login-form').addEventListener('submit', (e) => {
+    document.getElementById('partner-login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const username = document.getElementById('partner-login-username').value.trim();
       const password = document.getElementById('partner-login-password').value;
-      const result = window.SpotFinderAuth.loginPartner(username, password);
       const errorBox = document.getElementById('partner-login-error');
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in...';
+      const result = await window.SpotFinderAuth.loginPartner(username, password);
+      btn.disabled = false;
+      btn.innerHTML = 'Partner Log In';
       if (result.success) {
         errorBox.textContent = '';
         window.location.hash = '#/partner';
@@ -315,15 +334,20 @@ class SpotFinderRouter {
       }
     });
 
-    document.getElementById('partner-register-form').addEventListener('submit', (e) => {
+    document.getElementById('partner-register-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('partner-reg-name').value.trim();
       const businessName = document.getElementById('partner-reg-business').value.trim();
       const username = document.getElementById('partner-reg-username').value.trim();
       const password = document.getElementById('partner-reg-password').value;
-      const result = window.SpotFinderAuth.registerPartner(name, businessName, username, password);
       const errorBox = document.getElementById('partner-register-error');
       const successBox = document.getElementById('partner-register-success');
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registering...';
+      const result = await window.SpotFinderAuth.registerPartner(name, businessName, username, password);
+      btn.disabled = false;
+      btn.innerHTML = 'Register Business';
       if (result.success) {
         errorBox.textContent = '';
         successBox.textContent = 'Business registered! You can log in now.';
@@ -404,12 +428,17 @@ class SpotFinderRouter {
       }
     });
 
-    document.getElementById('admin-login-form').addEventListener('submit', (e) => {
+    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const username = document.getElementById('admin-login-username').value.trim();
       const password = document.getElementById('admin-login-password').value;
-      const result = window.SpotFinderAuth.loginAdmin(username, password);
       const errorBox = document.getElementById('admin-login-error');
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in...';
+      const result = await window.SpotFinderAuth.loginAdmin(username, password);
+      btn.disabled = false;
+      btn.innerHTML = 'Admin Log In';
       if (result.success) {
         errorBox.textContent = '';
         window.location.hash = '#/admin';
@@ -422,11 +451,11 @@ class SpotFinderRouter {
   // -----------------------------------------------------------
   // ADMIN: DASHBOARD
   // -----------------------------------------------------------
-  renderAdminDashboard() {
+  async renderAdminDashboard() {
     const areas = window.COIMBATORE_DATA.areas;
     const totalSpots = areas.reduce((sum, a) => sum + a.spots.length, 0);
     const totalRestaurants = areas.reduce((sum, a) => sum + a.restaurants.length, 0);
-    const admins = window.SpotFinderAuth.getAdmins();
+    const admins = window.SpotFinderAuth.getAdminsSync();
     const user = window.SpotFinderAuth.currentUser();
 
     this.appView.innerHTML = `
@@ -624,6 +653,10 @@ class SpotFinderRouter {
       errorBox.textContent = '';
       successBox.textContent = '';
 
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
       let areaId = areaSelect.value;
 
       // Create new place if needed
@@ -631,6 +664,7 @@ class SpotFinderRouter {
         const placeName = document.getElementById('new-place-name').value.trim();
         if (!placeName) {
           errorBox.textContent = 'Please enter a name for the new place.';
+          btn.disabled = false; btn.innerHTML = 'Save Listing';
           return;
         }
         const placeTagline = document.getElementById('new-place-tagline').value.trim() || 'Discover this area';
@@ -644,7 +678,7 @@ class SpotFinderRouter {
           areaId = `${areaId}-${Date.now()}`;
         }
 
-        window.SpotFinderAuth.addArea({
+        await window.SpotFinderAuth.addArea({
           id: areaId,
           name: placeName,
           tagline: placeTagline,
@@ -659,6 +693,7 @@ class SpotFinderRouter {
       const name = document.getElementById('listing-name').value.trim();
       if (!name) {
         errorBox.textContent = 'Please enter a name for the listing.';
+        btn.disabled = false; btn.innerHTML = 'Save Listing';
         return;
       }
 
@@ -698,15 +733,16 @@ class SpotFinderRouter {
         };
       }
 
-      window.SpotFinderAuth.addListing(areaId, category, item);
+      await window.SpotFinderAuth.addListing(areaId, category, item);
       successBox.textContent = `"${name}" added successfully!`;
+      btn.disabled = false; btn.innerHTML = 'Save Listing';
       setTimeout(() => this.renderAdminManage(), 700);
     });
 
     document.querySelectorAll('.admin-delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         if (!confirm('Delete this listing?')) return;
-        window.SpotFinderAuth.deleteListing(btn.dataset.area, btn.dataset.category, btn.dataset.id);
+        await window.SpotFinderAuth.deleteListing(btn.dataset.area, btn.dataset.category, btn.dataset.id);
         this.renderAdminManage();
       });
     });
@@ -715,8 +751,8 @@ class SpotFinderRouter {
   // -----------------------------------------------------------
   // ADMIN: MANAGE ADMIN ACCOUNTS (max 5)
   // -----------------------------------------------------------
-  renderAdminAccounts() {
-    const admins = window.SpotFinderAuth.getAdmins();
+  async renderAdminAccounts() {
+    const admins = window.SpotFinderAuth.getAdminsSync();
     const current = window.SpotFinderAuth.currentUser();
     const atLimit = admins.length >= window.SpotFinderAuth.MAX_ADMINS;
 
@@ -764,12 +800,17 @@ class SpotFinderRouter {
 
     const form = document.getElementById('add-admin-form');
     if (form) {
-      form.addEventListener('submit', (e) => {
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('new-admin-name').value.trim();
         const username = document.getElementById('new-admin-username').value.trim();
         const password = document.getElementById('new-admin-password').value;
-        const result = window.SpotFinderAuth.addAdmin(name, username, password);
+        const addBtn = e.target.querySelector('button[type="submit"]');
+        addBtn.disabled = true;
+        addBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
+        const result = await window.SpotFinderAuth.addAdmin(name, username, password);
+        addBtn.disabled = false;
+        addBtn.innerHTML = 'Add Admin';
         const errorBox = document.getElementById('add-admin-error');
         const successBox = document.getElementById('add-admin-success');
         if (result.success) {
@@ -784,18 +825,18 @@ class SpotFinderRouter {
     }
 
     document.querySelectorAll('.admin-delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         if (btn.dataset.username === current.username) {
           if (!confirm('This is your own account. Remove it anyway? You will be logged out.')) return;
         } else if (!confirm(`Remove admin "${btn.dataset.username}"?`)) {
           return;
         }
-        const result = window.SpotFinderAuth.removeAdmin(btn.dataset.username);
+        const result = await window.SpotFinderAuth.removeAdmin(btn.dataset.username);
         if (result.success && btn.dataset.username === current.username) {
           window.SpotFinderAuth.logout();
           window.location.hash = '#/login';
         } else {
-          this.renderAdminAccounts();
+          await this.renderAdminAccounts();
         }
       });
     });
@@ -924,9 +965,14 @@ class SpotFinderRouter {
       errorBox.textContent = '';
       successBox.textContent = '';
 
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+
       const areaId = document.getElementById('partner-area-select').value;
       if (!areaId) {
         errorBox.textContent = 'Please select a place for your listing.';
+        btn.disabled = false; btn.innerHTML = 'Submit Listing';
         return;
       }
 
@@ -934,6 +980,7 @@ class SpotFinderRouter {
       const name = document.getElementById('partner-listing-name').value.trim();
       if (!name) {
         errorBox.textContent = 'Please enter your business name.';
+        btn.disabled = false; btn.innerHTML = 'Submit Listing';
         return;
       }
 
@@ -973,15 +1020,16 @@ class SpotFinderRouter {
         };
       }
 
-      window.SpotFinderAuth.addListing(areaId, category, item, ownerUsername);
+      await window.SpotFinderAuth.addListing(areaId, category, item, ownerUsername);
       successBox.textContent = `"${name}" submitted successfully!`;
+      btn.disabled = false; btn.innerHTML = 'Submit Listing';
       setTimeout(() => this.renderPartnerDashboard(), 700);
     });
 
     document.querySelectorAll('.admin-delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         if (!confirm('Delete this listing?')) return;
-        window.SpotFinderAuth.deleteListing(btn.dataset.area, btn.dataset.category, btn.dataset.id);
+        await window.SpotFinderAuth.deleteListing(btn.dataset.area, btn.dataset.category, btn.dataset.id);
         this.renderPartnerDashboard();
       });
     });
@@ -1457,13 +1505,18 @@ class SpotFinderRouter {
 
     const form = document.getElementById('review-form');
     if (form) {
-      form.addEventListener('submit', (e) => {
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const errorBox = document.getElementById('review-error');
         const successBox = document.getElementById('review-success');
         const rating = Number(ratingInput.value);
         const text = document.getElementById('review-text').value;
-        const result = window.SpotFinderAuth.addReview(areaId, category, itemId, rating, text);
+        const btn = form.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Posting...';
+        const result = await window.SpotFinderAuth.addReview(areaId, category, itemId, rating, text);
+        btn.disabled = false;
+        btn.innerHTML = 'Post Review';
         if (result.success) {
           errorBox.textContent = '';
           successBox.textContent = 'Review posted!';
@@ -1476,9 +1529,9 @@ class SpotFinderRouter {
     }
 
     document.querySelectorAll('.review-delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         if (!confirm('Delete this review?')) return;
-        window.SpotFinderAuth.deleteReview(btn.dataset.reviewId);
+        await window.SpotFinderAuth.deleteReview(btn.dataset.reviewId);
         this.renderPlaceDetails(areaId, category, itemId);
       });
     });

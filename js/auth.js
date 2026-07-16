@@ -1,6 +1,10 @@
 /* -------------------------------------------------------------
  * SPOT FINDER - Authentication & Data Management System
- * Handles users, admins, partners, favorites, reviews, and data
+ * Firebase Firestore-backed storage for all data types:
+ *   • users (admin / partner / user profiles)
+ *   • areas (locations, spots, restaurants)
+ *   • reviews
+ *   • favorites
  * ------------------------------------------------------------- */
 
 const SpotFinderAuth = (() => {
@@ -9,47 +13,23 @@ const SpotFinderAuth = (() => {
   // CONSTANTS
   // ------------------------------------------------------------------
   const MAX_ADMINS = 5;
-  const STORAGE_KEYS = {
-    USERS: 'sf_users',
-    ADMINS: 'sf_admins',
-    PARTNERS: 'sf_partners',
-    SESSION: 'sf_session',
-    REVIEWS: 'sf_reviews',
-    FAVORITES: 'sf_favorites',
-    CUSTOM_DATA: 'sf_custom_data'
-  };
+  const SESSION_KEY = 'sf_session';
 
   // ------------------------------------------------------------------
-  // UTILITY: LOCAL STORAGE
+  // UTILITY: SESSION (localStorage, lightweight)
   // ------------------------------------------------------------------
-  const load = (key, fallback = null) => {
+  const getSession = () => {
     try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch { return fallback; }
+      const raw = localStorage.getItem(SESSION_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
   };
 
-  const save = (key, value) => {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* quota */ }
+  const setSession = (user) => {
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(user)); } catch {}
   };
 
-  // ------------------------------------------------------------------
-  // UTILITY: SLUG GENERATOR
-  // ------------------------------------------------------------------
-  const slugify = (str) =>
-    str.toLowerCase().trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
-
-  // ------------------------------------------------------------------
-  // SESSION MANAGEMENT
-  // ------------------------------------------------------------------
-  const getSession = () => load(STORAGE_KEYS.SESSION, null);
-
-  const setSession = (user) => save(STORAGE_KEYS.SESSION, user);
-
-  const clearSession = () => localStorage.removeItem(STORAGE_KEYS.SESSION);
+  const clearSession = () => localStorage.removeItem(SESSION_KEY);
 
   const isLoggedIn = () => !!getSession();
 
@@ -67,19 +47,97 @@ const SpotFinderAuth = (() => {
 
   const logout = () => {
     const session = getSession();
-    clearSession(); // Clear localStorage session immediately (sync)
+    clearSession();
     if (session && session.role === 'user' && window.sfAuth) {
-      window.sfAuth.signOut().catch(() => {}); // Firebase sign-out (fire & forget)
+      window.sfAuth.signOut().catch(() => {});
     }
   };
 
   // ------------------------------------------------------------------
-  // USER ACCOUNTS
+  // UTILITY: SLUG GENERATOR
   // ------------------------------------------------------------------
-  const getUsers = () => load(STORAGE_KEYS.USERS, []);
-  const saveUsers = (users) => save(STORAGE_KEYS.USERS, users);
+  const slugify = (str) =>
+    str.toLowerCase().trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
 
-  // ---- FIREBASE-BACKED USER REGISTRATION ----
+  // ------------------------------------------------------------------
+  // HELPERS: shorthand Firestore refs
+  // ------------------------------------------------------------------
+  const db = () => window.sfDb;
+  const usersCol = () => db().collection('users');
+  const areasCol = () => db().collection('areas');
+  const reviewsCol = () => db().collection('reviews');
+  const favoritesCol = () => db().collection('favorites');
+
+  // ------------------------------------------------------------------
+  // IN-MEMORY CACHE (kept in sync with Firestore)
+  // ------------------------------------------------------------------
+  // After loadAllData() is called, window.COIMBATORE_DATA.areas is
+  // authoritative in memory. All mutations write-through to Firestore.
+
+  // ------------------------------------------------------------------
+  // DATA INITIALISATION
+  // ------------------------------------------------------------------
+  /**
+   * Called once on app startup.
+   * 1. Seeds Firestore with base spot data if the areas collection is empty.
+   * 2. Seeds the default admin account if none exists.
+   * 3. Loads all areas into window.COIMBATORE_DATA.areas.
+   */
+  const loadAllData = async () => {
+    if (!window.sfDb) return;
+
+    try {
+      // ---- Seed areas from static data.js if Firestore has none ----
+      const areasSnap = await areasCol().orderBy('_order').get().catch(() => null);
+      let areasFromDb = [];
+
+      if (areasSnap && !areasSnap.empty) {
+        areasFromDb = areasSnap.docs.map(d => ({ ...d.data(), _firestoreId: d.id }));
+      } else {
+        // First run – push static data to Firestore
+        if (window.COIMBATORE_DATA && window.COIMBATORE_DATA.areas) {
+          const batch = db().batch();
+          window.COIMBATORE_DATA.areas.forEach((area, idx) => {
+            const ref = areasCol().doc(area.id);
+            batch.set(ref, { ...area, _order: idx });
+          });
+          await batch.commit();
+          areasFromDb = window.COIMBATORE_DATA.areas.map((a, idx) => ({ ...a, _order: idx }));
+        }
+      }
+
+      // Hydrate in-memory model
+      if (window.COIMBATORE_DATA) {
+        window.COIMBATORE_DATA.areas = areasFromDb;
+      }
+
+      // ---- Seed default admin if none exists ----
+      const adminSnap = await usersCol()
+        .where('role', '==', 'admin')
+        .limit(1)
+        .get().catch(() => null);
+
+      if (adminSnap && adminSnap.empty) {
+        await usersCol().add({
+          name: 'Admin',
+          username: 'admin',
+          password: 'admin123',
+          role: 'admin',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+
+    } catch (e) {
+      console.warn('[SpotFinder] loadAllData error:', e);
+    }
+  };
+
+  // ------------------------------------------------------------------
+  // USER ACCOUNTS (Firebase Auth + Firestore profile)
+  // ------------------------------------------------------------------
   const registerUser = async (name, username, password) => {
     if (!name || !username || !password) return { success: false, message: 'All fields are required.' };
     if (password.length < 6) return { success: false, message: 'Password must be at least 6 characters.' };
@@ -88,11 +146,11 @@ const SpotFinderAuth = (() => {
     const email = `${username.toLowerCase()}@spotfinder.app`;
     try {
       const cred = await window.sfAuth.createUserWithEmailAndPassword(email, password);
-      // Save full profile to Firestore
-      await window.sfDb.collection('users').doc(cred.user.uid).set({
+      await usersCol().doc(cred.user.uid).set({
         name,
         username: username.toLowerCase(),
-        role: 'user'
+        role: 'user',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       return { success: true };
     } catch (e) {
@@ -106,15 +164,13 @@ const SpotFinderAuth = (() => {
     }
   };
 
-  // ---- FIREBASE-BACKED USER LOGIN ----
   const loginUser = async (username, password) => {
     if (!window.sfAuth || !window.sfDb) return { success: false, message: 'Service unavailable. Please refresh.' };
 
     const email = `${username.toLowerCase()}@spotfinder.app`;
     try {
       const cred = await window.sfAuth.signInWithEmailAndPassword(email, password);
-      // Fetch profile from Firestore and cache in localStorage session
-      const doc = await window.sfDb.collection('users').doc(cred.user.uid).get();
+      const doc = await usersCol().doc(cred.user.uid).get();
       if (doc.exists) {
         const profile = doc.data();
         setSession({ name: profile.name, username: profile.username, role: 'user' });
@@ -126,106 +182,135 @@ const SpotFinderAuth = (() => {
   };
 
   // ------------------------------------------------------------------
-  // ADMIN ACCOUNTS
+  // ADMIN ACCOUNTS (stored in Firestore users collection, role:'admin')
   // ------------------------------------------------------------------
-  const getAdmins = () => {
-    const stored = load(STORAGE_KEYS.ADMINS, null);
-    if (stored && stored.length > 0) return stored;
-    // Seed a default admin if none exist
-    const defaults = [{ name: 'Admin', username: 'admin', password: 'admin123', role: 'admin' }];
-    save(STORAGE_KEYS.ADMINS, defaults);
-    return defaults;
-  };
-
-  const saveAdmins = (admins) => save(STORAGE_KEYS.ADMINS, admins);
-
-  const loginAdmin = (username, password) => {
-    const admins = getAdmins();
-    const admin = admins.find(a => a.username === username.toLowerCase() && a.password === password);
-    if (!admin) return { success: false, message: 'Invalid admin credentials.' };
-    setSession({ name: admin.name, username: admin.username, role: 'admin' });
-    return { success: true };
-  };
-
-  const addAdmin = (name, username, password) => {
-    const admins = getAdmins();
-    if (admins.length >= MAX_ADMINS) return { success: false, message: `Maximum ${MAX_ADMINS} admin accounts allowed.` };
-    if (!name || !username || !password) return { success: false, message: 'All fields are required.' };
-    if (admins.some(a => a.username.toLowerCase() === username.toLowerCase())) {
-      return { success: false, message: 'Username already exists.' };
+  const getAdmins = async () => {
+    try {
+      const snap = await usersCol().where('role', '==', 'admin').get();
+      return snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+    } catch {
+      return [];
     }
-    admins.push({ name, username: username.toLowerCase(), password, role: 'admin' });
-    saveAdmins(admins);
-    return { success: true };
   };
 
-  const removeAdmin = (username) => {
-    const admins = getAdmins();
-    if (admins.length <= 1) return { success: false, message: 'Cannot remove the last admin account.' };
-    const updated = admins.filter(a => a.username !== username.toLowerCase());
-    if (updated.length === admins.length) return { success: false, message: 'Admin not found.' };
-    saveAdmins(updated);
-    return { success: true };
+  // Sync version used by renderAdminAccounts which needs the list immediately.
+  // We cache the last-loaded admins in memory for that purpose.
+  let _cachedAdmins = [];
+  const getAdminsSync = () => _cachedAdmins;
+
+  const refreshAdminsCache = async () => {
+    _cachedAdmins = await getAdmins();
+  };
+
+  const loginAdmin = async (username, password) => {
+    try {
+      const snap = await usersCol()
+        .where('role', '==', 'admin')
+        .where('username', '==', username.toLowerCase())
+        .get();
+      if (snap.empty) return { success: false, message: 'Invalid admin credentials.' };
+      const admin = snap.docs[0].data();
+      if (admin.password !== password) return { success: false, message: 'Invalid admin credentials.' };
+      setSession({ name: admin.name, username: admin.username, role: 'admin' });
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: 'Login failed. Please try again.' };
+    }
+  };
+
+  const addAdmin = async (name, username, password) => {
+    if (!name || !username || !password) return { success: false, message: 'All fields are required.' };
+    try {
+      const snap = await usersCol().where('role', '==', 'admin').get();
+      if (snap.size >= MAX_ADMINS) return { success: false, message: `Maximum ${MAX_ADMINS} admin accounts allowed.` };
+      const exists = snap.docs.some(d => d.data().username === username.toLowerCase());
+      if (exists) return { success: false, message: 'Username already exists.' };
+      await usersCol().add({
+        name,
+        username: username.toLowerCase(),
+        password,
+        role: 'admin',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      await refreshAdminsCache();
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: 'Failed to add admin. Please try again.' };
+    }
+  };
+
+  const removeAdmin = async (username) => {
+    try {
+      const snap = await usersCol().where('role', '==', 'admin').get();
+      if (snap.size <= 1) return { success: false, message: 'Cannot remove the last admin account.' };
+      const doc = snap.docs.find(d => d.data().username === username.toLowerCase());
+      if (!doc) return { success: false, message: 'Admin not found.' };
+      await usersCol().doc(doc.id).delete();
+      await refreshAdminsCache();
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: 'Failed to remove admin.' };
+    }
   };
 
   // ------------------------------------------------------------------
-  // PARTNER ACCOUNTS
+  // PARTNER ACCOUNTS (stored in Firestore users collection, role:'partner')
   // ------------------------------------------------------------------
-  const getPartners = () => load(STORAGE_KEYS.PARTNERS, []);
-  const savePartners = (partners) => save(STORAGE_KEYS.PARTNERS, partners);
-
-  const registerPartner = (name, businessName, username, password) => {
+  const registerPartner = async (name, businessName, username, password) => {
     if (!name || !businessName || !username || !password) return { success: false, message: 'All fields are required.' };
     if (password.length < 4) return { success: false, message: 'Password must be at least 4 characters.' };
-
-    const partners = getPartners();
-    if (partners.some(p => p.username.toLowerCase() === username.toLowerCase())) {
-      return { success: false, message: 'Username is already taken.' };
+    try {
+      const snap = await usersCol()
+        .where('role', '==', 'partner')
+        .where('username', '==', username.toLowerCase())
+        .get();
+      if (!snap.empty) return { success: false, message: 'Username is already taken.' };
+      await usersCol().add({
+        name,
+        businessName,
+        username: username.toLowerCase(),
+        password,
+        role: 'partner',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: 'Registration failed. Please try again.' };
     }
-
-    partners.push({ name, businessName, username: username.toLowerCase(), password, role: 'partner' });
-    savePartners(partners);
-    return { success: true };
   };
 
-  const loginPartner = (username, password) => {
-    const partners = getPartners();
-    const partner = partners.find(p => p.username === username.toLowerCase() && p.password === password);
-    if (!partner) return { success: false, message: 'Invalid partner credentials.' };
-    setSession({ name: partner.name, businessName: partner.businessName, username: partner.username, role: 'partner' });
-    return { success: true };
+  const loginPartner = async (username, password) => {
+    try {
+      const snap = await usersCol()
+        .where('role', '==', 'partner')
+        .where('username', '==', username.toLowerCase())
+        .get();
+      if (snap.empty) return { success: false, message: 'Invalid partner credentials.' };
+      const partner = snap.docs[0].data();
+      if (partner.password !== password) return { success: false, message: 'Invalid partner credentials.' };
+      setSession({ name: partner.name, businessName: partner.businessName, username: partner.username, role: 'partner' });
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: 'Login failed. Please try again.' };
+    }
   };
 
   // ------------------------------------------------------------------
-  // DATA MANAGEMENT (Areas, Spots, Restaurants)
+  // AREAS & LISTINGS (Firestore `areas` collection)
+  // Each document = one area with embedded spots[] and restaurants[]
   // ------------------------------------------------------------------
-  const getCustomData = () => load(STORAGE_KEYS.CUSTOM_DATA, null);
-  const saveCustomData = (data) => save(STORAGE_KEYS.CUSTOM_DATA, data);
-
-  // Returns merged base data + custom-added data
   const getAreas = () => {
-    const customData = getCustomData();
-    if (customData) {
-      return customData.areas;
-    }
     return window.COIMBATORE_DATA ? window.COIMBATORE_DATA.areas : [];
   };
 
-  // Sync in-memory COIMBATORE_DATA with localStorage custom data
-  const syncDataToMemory = () => {
-    const customData = getCustomData();
-    if (customData && window.COIMBATORE_DATA) {
-      window.COIMBATORE_DATA.areas = customData.areas;
-    }
-  };
-
-  const addArea = (area) => {
+  const addArea = async (area) => {
     if (!window.COIMBATORE_DATA) return;
+    const order = window.COIMBATORE_DATA.areas.length;
+    await areasCol().doc(area.id).set({ ...area, _order: order });
     window.COIMBATORE_DATA.areas.push(area);
-    saveCustomData({ areas: window.COIMBATORE_DATA.areas });
   };
 
-  const addListing = (areaId, category, item, ownerUsername = null) => {
+  const addListing = async (areaId, category, item, ownerUsername = null) => {
     if (!window.COIMBATORE_DATA) return;
     const area = window.COIMBATORE_DATA.areas.find(a => a.id === areaId);
     if (!area) return;
@@ -238,10 +323,11 @@ const SpotFinderAuth = (() => {
       area.restaurants.push(item);
     }
 
-    saveCustomData({ areas: window.COIMBATORE_DATA.areas });
+    // Persist the full updated area document to Firestore
+    await areasCol().doc(areaId).set({ ...area }, { merge: false });
   };
 
-  const deleteListing = (areaId, category, itemId) => {
+  const deleteListing = async (areaId, category, itemId) => {
     if (!window.COIMBATORE_DATA) return;
     const area = window.COIMBATORE_DATA.areas.find(a => a.id === areaId);
     if (!area) return;
@@ -252,13 +338,12 @@ const SpotFinderAuth = (() => {
       area.restaurants = area.restaurants.filter(r => r.id !== itemId);
     }
 
-    saveCustomData({ areas: window.COIMBATORE_DATA.areas });
+    await areasCol().doc(areaId).set({ ...area }, { merge: false });
   };
 
   const getMyListings = (ownerUsername) => {
     const results = [];
     if (!window.COIMBATORE_DATA) return results;
-
     window.COIMBATORE_DATA.areas.forEach(area => {
       area.spots.forEach(spot => {
         if (spot._owner === ownerUsername) {
@@ -271,29 +356,36 @@ const SpotFinderAuth = (() => {
         }
       });
     });
-
     return results;
   };
 
   // ------------------------------------------------------------------
-  // REVIEWS
+  // REVIEWS (Firestore `reviews` collection)
   // ------------------------------------------------------------------
-  const getReviews = (areaId, category, itemId) => {
-    const all = load(STORAGE_KEYS.REVIEWS, []);
-    return all.filter(r => r.areaId === areaId && r.category === category && r.itemId === itemId)
-              .sort((a, b) => new Date(b.date) - new Date(a.date));
+  let _cachedReviews = []; // loaded on startup / invalidated on write
+
+  const loadReviews = async () => {
+    try {
+      const snap = await reviewsCol().orderBy('date', 'desc').get();
+      _cachedReviews = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+    } catch {
+      _cachedReviews = [];
+    }
   };
 
-  const addReview = (areaId, category, itemId, rating, text) => {
+  const getReviews = (areaId, category, itemId) => {
+    return _cachedReviews
+      .filter(r => r.areaId === areaId && r.category === category && r.itemId === itemId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  };
+
+  const addReview = async (areaId, category, itemId, rating, text) => {
     const session = getSession();
     if (!session) return { success: false, message: 'You must be logged in to post a review.' };
     if (!rating || rating < 1 || rating > 5) return { success: false, message: 'Please select a star rating.' };
     if (!text || text.trim().length < 5) return { success: false, message: 'Review text must be at least 5 characters.' };
 
-    const all = load(STORAGE_KEYS.REVIEWS, []);
-
     const review = {
-      id: `review-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       areaId,
       category,
       itemId,
@@ -304,16 +396,23 @@ const SpotFinderAuth = (() => {
       date: new Date().toISOString()
     };
 
-    all.push(review);
-    save(STORAGE_KEYS.REVIEWS, all);
-    return { success: true };
+    try {
+      const ref = await reviewsCol().add(review);
+      _cachedReviews.unshift({ ...review, id: ref.id });
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: 'Failed to post review. Please try again.' };
+    }
   };
 
-  const deleteReview = (reviewId) => {
-    const all = load(STORAGE_KEYS.REVIEWS, []);
-    const updated = all.filter(r => r.id !== reviewId);
-    save(STORAGE_KEYS.REVIEWS, updated);
-    return { success: true };
+  const deleteReview = async (reviewId) => {
+    try {
+      await reviewsCol().doc(reviewId).delete();
+      _cachedReviews = _cachedReviews.filter(r => r.id !== reviewId);
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: 'Failed to delete review.' };
+    }
   };
 
   const getAverageRating = (areaId, category, itemId) => {
@@ -327,13 +426,27 @@ const SpotFinderAuth = (() => {
   };
 
   // ------------------------------------------------------------------
-  // FAVORITES
+  // FAVORITES (Firestore `favorites` collection)
+  // Document ID = username, field `items` = array of {areaId, category, itemId}
   // ------------------------------------------------------------------
+  let _cachedFavs = {}; // { username: [{areaId, category, itemId}, ...] }
+
+  const loadFavorites = async () => {
+    try {
+      const snap = await favoritesCol().get();
+      _cachedFavs = {};
+      snap.docs.forEach(d => {
+        _cachedFavs[d.id] = d.data().items || [];
+      });
+    } catch {
+      _cachedFavs = {};
+    }
+  };
+
   const getFavorites = () => {
     const session = getSession();
     if (!session) return [];
-    const all = load(STORAGE_KEYS.FAVORITES, {});
-    return all[session.username] || [];
+    return _cachedFavs[session.username] || [];
   };
 
   const isFavorite = (areaId, category, itemId) => {
@@ -341,49 +454,48 @@ const SpotFinderAuth = (() => {
     return favs.some(f => f.areaId === areaId && f.category === category && f.itemId === itemId);
   };
 
-  const toggleFavorite = (areaId, category, itemId) => {
+  const toggleFavorite = async (areaId, category, itemId) => {
     const session = getSession();
     if (!session) return { success: false, message: 'Login required.' };
 
-    const all = load(STORAGE_KEYS.FAVORITES, {});
-    if (!all[session.username]) all[session.username] = [];
+    const username = session.username;
+    if (!_cachedFavs[username]) _cachedFavs[username] = [];
 
-    const idx = all[session.username].findIndex(
+    const idx = _cachedFavs[username].findIndex(
       f => f.areaId === areaId && f.category === category && f.itemId === itemId
     );
 
     let added;
     if (idx === -1) {
-      all[session.username].push({ areaId, category, itemId });
+      _cachedFavs[username].push({ areaId, category, itemId });
       added = true;
     } else {
-      all[session.username].splice(idx, 1);
+      _cachedFavs[username].splice(idx, 1);
       added = false;
     }
 
-    save(STORAGE_KEYS.FAVORITES, all);
-    return { success: true, added };
+    try {
+      await favoritesCol().doc(username).set({ items: _cachedFavs[username] });
+      return { success: true, added };
+    } catch (e) {
+      return { success: true, added }; // optimistic – cached version is still updated
+    }
   };
 
   // ------------------------------------------------------------------
-  // INIT: Restore custom data on page load
+  // INIT
   // ------------------------------------------------------------------
   const init = () => {
-    syncDataToMemory();
-
-    // ---- FIREBASE AUTH STATE LISTENER ----
-    // Restores session automatically after a page refresh if Firebase still has the user logged in
+    // Firebase Auth state listener – restores user session on page refresh
     if (window.sfAuth) {
       window.sfAuth.onAuthStateChanged(async (firebaseUser) => {
         if (firebaseUser) {
           const currentSession = getSession();
-          // Only restore if there's no active user session in localStorage
           if (!currentSession || currentSession.role !== 'user') {
             try {
-              const doc = await window.sfDb.collection('users').doc(firebaseUser.uid).get();
+              const doc = await usersCol().doc(firebaseUser.uid).get();
               if (doc.exists) {
                 setSession(doc.data());
-                // Redirect away from login page or re-run the router
                 if (window.location.hash === '#/login' || !window.location.hash || window.location.hash === '#') {
                   window.location.hash = '#/';
                 } else if (window.router) {
@@ -395,7 +507,6 @@ const SpotFinderAuth = (() => {
             }
           }
         } else {
-          // Firebase signed out — also clear localStorage user session
           const currentSession = getSession();
           if (currentSession && currentSession.role === 'user') {
             clearSession();
@@ -406,7 +517,6 @@ const SpotFinderAuth = (() => {
     }
   };
 
-  // Run init immediately
   init();
 
   // ------------------------------------------------------------------
@@ -420,6 +530,12 @@ const SpotFinderAuth = (() => {
     isAdmin,
     isPartner,
     logout,
+    // Init
+    loadAllData,
+    loadReviews,
+    loadFavorites,
+    refreshAdminsCache,
+    getAdminsSync,
     // Users
     registerUser,
     loginUser,
@@ -432,6 +548,7 @@ const SpotFinderAuth = (() => {
     registerPartner,
     loginPartner,
     // Data
+    getAreas,
     addArea,
     addListing,
     deleteListing,

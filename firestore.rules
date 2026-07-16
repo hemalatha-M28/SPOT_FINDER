@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------
+    // USERS collection (admins, partners, user profiles)
+    // Open read/write needed for admin/partner login (no Firebase Auth for them)
+    // -------------------------------------------------------
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // -------------------------------------------------------
+    // AREAS collection (spots & restaurants embedded)
+    // -------------------------------------------------------
+    match /areas/{areaId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // -------------------------------------------------------
+    // REVIEWS collection
+    // -------------------------------------------------------
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // -------------------------------------------------------
+    // FAVORITES collection (keyed by username)
+    // -------------------------------------------------------
+    match /favorites/{username} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
