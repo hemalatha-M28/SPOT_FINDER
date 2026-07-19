@@ -96,6 +96,35 @@ const SpotFinderAuth = (() => {
 
       if (areasSnap && !areasSnap.empty) {
         areasFromDb = areasSnap.docs.map(d => ({ ...d.data(), _firestoreId: d.id }));
+
+        // Always sync static display fields (bannerImage, tagline, description) from data.js
+        // so that developer changes to these fields are reflected without wiping Firestore data.
+        if (window.COIMBATORE_DATA && window.COIMBATORE_DATA.areas) {
+          const syncBatch = db().batch();
+          window.COIMBATORE_DATA.areas.forEach(area => {
+            const ref = areasCol().doc(area.id);
+            syncBatch.update(ref, {
+              bannerImage: area.bannerImage,
+              tagline: area.tagline,
+              description: area.description
+            });
+          });
+          await syncBatch.commit().catch(() => {});
+
+          // Reflect the updated static fields in the in-memory model too
+          areasFromDb = areasFromDb.map(dbArea => {
+            const staticArea = window.COIMBATORE_DATA.areas.find(a => a.id === dbArea.id);
+            if (staticArea) {
+              return {
+                ...dbArea,
+                bannerImage: staticArea.bannerImage,
+                tagline: staticArea.tagline,
+                description: staticArea.description
+              };
+            }
+            return dbArea;
+          });
+        }
       } else {
         // First run – push static data to Firestore
         if (window.COIMBATORE_DATA && window.COIMBATORE_DATA.areas) {

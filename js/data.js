@@ -752,7 +752,7 @@ const COIMBATORE_DATA = {
       id: "vadavalli",
       name: "Vadavalli",
       tagline: "Western Foothills & Mystic Temples",
-      bannerImage: "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?q=80&w=1200",
+      bannerImage: "https://q-xx.bstatic.com/xdata/images/hotel/840x460/482185396.jpg?k=745d5aaf7b25d8820fb98a9118a812588a316a69ece4cb5382b58170a0815759&o=",
       description: "Vadavalli is a serene residential area near the Western Ghats, known for its greenery, pleasant climate, and easy access to nature.",
       spots: [
         {
